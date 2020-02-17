@@ -4,6 +4,8 @@
 import serial
 import time
 import serial.tools.list_ports
+import funkcje
+
 
 ####################################################################
 F_CPU = 32000000# 32 MHz
@@ -12,6 +14,9 @@ LICZBY_PROBEK = [1000,250,100]
 F_MAX = [1000,4000,10000]
 LICZBA_PROBEK_f_MAX = [(1000,1000),(250,4000),(100,10000)]
 PRZEBIEGI = {"SINUS_1000_NR" : 0 , "PILA_1000_NR" : 1, "MULTI_SIN_1000_NR" : 2, "SINC_1000_NR":3}
+TERMINATOR = b'\x24'
+TERMINATOR_STRING = '$$$$'
+LICZBA_ZNAKOW_TERMINACJI = 4
 ####################################################################
 def PER_na_2_znaki(PER):
     T1 = PER // 256 # STARSZY BAJT
@@ -83,8 +88,16 @@ def GeneracjaMaxProb():
 ####################################################################
 def PomiarOkres():
     print("Pomiar Okresowy")
-    ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"])
+    delay = int(input("\nPodaj opóźnienie (x10ms)\n"))
+    if delay > 255 : delay = 255
+    ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
     NadajCOM(ramka)
+    dane = OdczytajPomiar()
+    dane = dane.strip('$')
+    dane = dane.split()
+    #dane.remove(TERMINATOR_STRING)
+    print(dane)
+    funkcje.wyrysuj_okres(dane)
     return True
 ####################################################################
 def Widmo():
@@ -98,10 +111,11 @@ def Wyjscie():
 def NadajCOM(ramka):
     ramka = ramka + "$$$$"
     print("długosc ramki ", len(ramka))
+    print("\n",ramka,"\n")
     port_szeregowy.write(ramka.encode())
     dane = port_szeregowy.read(len(ramka))
     print('\n\n\n')
-    print(dane.decode())
+    print(dane)
     print('\n\n\n')
 ####################################################################
 def WyborPortuCOM():
@@ -116,7 +130,24 @@ def WyborPortuCOM():
     else:
         print("Nie ma dostepnych portow!\n")
         return 0
-
+####################################################################
+def OdczytajPomiar():
+    licznik_znakow_terminacji = 0
+    dane = []
+    while(True): # odbieramy dane
+        znak = port_szeregowy.read(1)   # odczyt 1 bajtu
+        dane.append( znak )
+        if znak == TERMINATOR :
+            licznik_znakow_terminacji = licznik_znakow_terminacji + 1
+            if licznik_znakow_terminacji == LICZBA_ZNAKOW_TERMINACJI : #odebrano wszystkie dane
+                dane_string = ""
+                print("Liczba odebranych Bajtow: ",len(dane))
+                for bajt in dane:
+                    dane_string += bajt.decode()
+                return dane_string
+        else :
+            licznik_znakow_terminacji = 0
+        
 ####################################################################
 menu1 = """Co chcesz zrobic?
 1. Generacja - dopasowane czestotliwosc
