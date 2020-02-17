@@ -1,0 +1,99 @@
+/*
+ * main.h
+ *
+ * Created: 2020-01-18 11:49:27
+ *  Author: Marek
+ */ 
+
+
+#ifndef MAIN_H_
+#define MAIN_H_
+// czestotliwosc traktowania procesora - potem zmieniana!!!
+#define F_CPU				2000000UL
+//----------------------------------------------------
+//----------------------------------------------------
+//				BIBLIOTEKI STANDARDOWE
+#include <avr/io.h>
+//#include <stddef.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include <math.h>
+#include <stdbool.h>
+//----------------------------------------------------
+//				BIBLIOTEKI WLASNE
+#include "DAC_moje.h"
+#include "DMA.h"
+#include "ADC.h"
+#include "timery.h"
+//----------------------------------------------------
+//				MAKRA
+#define ROZMIAR_RAMKI_USB_MAX		17
+#define ROZMIAR_KOMENDY_MAX			20
+#define KONIEC_ZBIERANIA_PROBEK (1<<0)
+#define ODBIOR_KOMENDY			(1<<1)
+#define ODBIOR_ZNAKU			(1<<2)
+
+//			MAKRA OPISUJACE NUMERY PRZEBIEGOW
+#define SINUS_1000_NR			0
+#define PILA_1000_NR			1
+#define MULTI_SIN_1000_NR		2
+#define SINC_1000_NR			3
+
+#ifdef KALIB_CZEST
+// makra wykorzystywane do kalibracji czestotliwosci
+#define SQR_2_NR	100
+#define SQR_10_NR	101
+#define SQR_100_NR	102
+#define SQR_1000_NR 103
+#endif
+//			MAKRA OPISUJACE POLECENIA W RAMCE
+#define POLECENIE_POZYCJA			0
+#define GENERACJA					'G'
+#define GEN_PRZEBIEG_Bp				1
+#define GEN_PER_MSB_Bp				2
+#define GEN_PER_LSB_Bp				3
+#define GEN_LICZB_PROBEK_Bp			4
+#define ZNAK_TERMINACJI				'$'
+#define LICZBA_ZNAKOW_TERMINACJI	4
+//_____________________________________________________
+#define LICZBA_PROBEK_1000	1
+#define LICZBA_PROBEK_250	2
+#define LICZBA_PROBEK_100	3
+//_____________________________________________________
+//	pozycje bitowe peryferiow w PR.PRGEN itp - do WLACZENIA
+#define PRGEN_EVSYS (1<<1)
+#define PRGEN_DMA (1<<0)
+#define PRGEN_USB (1<<6)
+#define PRPA_ADC (1<<1)
+#define PRPB_DAC (1<<2)
+#define PRPC_TC0 (1<<0)
+
+//	makra do obliczen
+#define ADC_MAX_F 4095.0
+#define WIDMO_FLOAT_TO_UINT 100000
+//----------------------------------------------------
+//				PROTOTYPY FUNKCJI
+//----------------------------------------------------
+//				FUNKCJA INICJALIZACJI
+void Init(void);
+//----------------------------------------------------
+//				FUNKCJE TAKTOWANIA
+bool OSC_wait_for_rdy(uint8_t clk);
+void SelectPLL(OSC_PLLSRC_t src, uint8_t mult);
+//----------------------------------------------------
+//				FUNKCJE POMIAROWE
+void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek);	  // sama generacja
+void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie);				  // sam pomiar
+void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek);
+//----------------------------------------------------
+//				FUNKCJE KONWERSJI
+void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
+void liczbaNaZnaki(uint16_t probka, char * bufor);
+char cyfraNaZnak(uint8_t cyfra);
+//----------------------------------------------------
+//				FUNKCJE POZOSTALE
+uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
+void WlaczPeryferia(void);
+double oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
+void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
+#endif /* MAIN_H_ */

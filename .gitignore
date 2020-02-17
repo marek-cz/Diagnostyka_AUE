@@ -1,0 +1,11 @@
+# Pliki ignorowane przez Gita
+
+**/ASF
+**/Debug
+
+**/.vs
+*.cat
+*.inf
+*.xml
+*.cproj
+*.atsln
