@@ -53,7 +53,11 @@
 #define GEN_PER_MSB_Bp				2
 #define GEN_PER_LSB_Bp				3
 #define GEN_LICZB_PROBEK_Bp			4
+#define POM_FLAGI_Bp				1
+#define POM_DELAY_Bp				2
 #define ZNAK_TERMINACJI				'$'
+#define STRING_TERMINACJI			"$$$$"
+#define STRING_TERMINACJI_LEN		4
 #define LICZBA_ZNAKOW_TERMINACJI	4
 //_____________________________________________________
 #define LICZBA_PROBEK_1000	1
