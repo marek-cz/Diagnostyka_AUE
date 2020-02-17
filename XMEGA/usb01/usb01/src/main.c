@@ -43,7 +43,7 @@ volatile uint8_t flagi = 0;
 //-----------------------------------------------------------------------------------------------
 //				FUNKCJE OBSLUGI PRZERWAN
 
-ISR(DMA_CH0_vect)
+/*ISR(DMA_CH0_vect)
 {
 	
 	if(DACB_CH0DATA == probki_sygnalu[0] ) // kiedy jestesmy na poczatku okresu
@@ -54,7 +54,7 @@ ISR(DMA_CH0_vect)
 		// wyczyszczenie flagi przerwania
 		DMA_CH0_CTRLB |= DMA_CH_TRNIF_bm;
 	}
-}
+}*/
 
 ISR(DMA_CH1_vect) // przerwanie po transmisji bloku
 {
@@ -62,10 +62,6 @@ ISR(DMA_CH1_vect) // przerwanie po transmisji bloku
 	DMA_CH1_CTRLB &= ~(DMA_CH_TRNINTLVL_MED_gc); // wylaczenie przerwania
 	// wyczyszczenie flagi przerwania
 	DMA_CH1_CTRLB |= DMA_CH_TRNIF_bm;
-	// wylaczenie transferu DMA z ADC
-	//DMA_CH1_CTRLA &= ~(DMA_CH_ENABLE_bm);
-	// wyczyszczenie potoku ADC
-	//ADCA_CTRLA |= ADC_FLUSH_bm;
 	flagi |= KONIEC_ZBIERANIA_PROBEK;
 }
 
@@ -180,6 +176,13 @@ int main (void)
 			  }
 			  */
 		  }
+		  
+		  if (flagi & KONIEC_ZBIERANIA_PROBEK)
+		  {
+			  flagi &= ~(KONIEC_ZBIERANIA_PROBEK);
+			  NadajWynik(probki_pomiaru,liczba_probek);
+		  }
+		  
 	 }
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -200,6 +203,8 @@ void Init(void)
 	DMA_init();
 	DAC_init();
 	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc);
+	TCC0_Init(31); // Timer taktujacy DAC i ADC
+	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POMIAROWE
@@ -250,10 +255,13 @@ void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie)
 	// odczekaj do stanu ustalonego
 	for(i = 0; i< opoznienie;i++)
 	{
-		_delay_ms(100); // czekaj 100 ms
+		_delay_ms(10); // czekaj 10 ms
 	}
 	
-	DMA_CH0_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie po koncu transmisji bloku -> czekamy aby zaczac pomiar od POCZATKU OKRESU!
+	//DMA_CH0_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie po koncu transmisji bloku -> czekamy aby zaczac pomiar od POCZATKU OKRESU!
+	//		-- NIE SYNCHRONIZUJEMY FAZ SYGNALOW IN I OUT!!! --
+	DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
+	DMA_CH1_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie DMA po koncu transmisji bloku
 }
 
 void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
@@ -332,6 +340,7 @@ void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek)
 		}
 	}
 	udi_cdc_write_buf("\n\r\n\r",4);
+	udi_cdc_write_buf(STRING_TERMINACJI,STRING_TERMINACJI_LEN);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -414,6 +423,10 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 											break;
 			}
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
+			break;
+		case 'P' : // Pomiar
+			PomiarOkresowyADC(*liczba_probek,ramka_danych[POM_DELAY_Bp]);
+			break;
 		default :	break;
 	}
 }
