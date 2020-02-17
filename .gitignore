@@ -9,3 +9,4 @@
 *.xml
 *.cproj
 *.atsln
+**/Python/__pycache__/
