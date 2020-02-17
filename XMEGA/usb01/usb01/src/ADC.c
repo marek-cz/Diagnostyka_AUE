@@ -16,7 +16,8 @@ void ADC_Init(ADC_CH_t * adc_kanal,register8_t adc_mux)
 	ADC_CH_Init(adc_kanal,adc_mux); // PIN4 PORTU A - WEJSCIE ADC - ADC4 NA PLYTCE!!!
 	
 	PORTA.PIN4CTRL = PORT_ISC_INPUT_DISABLE_gc;			// zablokowanie cyfrowej funkcji pinu
-	ADCA.EVCTRL=ADC_SWEEP_0_gc | ADC_EVSEL_0123_gc | ADC_EVACT_SWEEP_gc; //Wyzwalanie kana³u 0 przez kanal 0 syst. zdarzen -> str.247 TMF
+	//ADCA.EVCTRL=ADC_SWEEP_0_gc | ADC_EVSEL_0123_gc | ADC_EVACT_SWEEP_gc; //Wyzwalanie kana³u 0 przez kanal 0 syst. zdarzen -> str.247 TMF
+	ADCA.EVCTRL=ADC_SWEEP_0_gc | ADC_EVSEL_0123_gc | ADC_EVACT_CH0_gc;
 	
 	
 	ADCA.CTRLA = ADC_ENABLE_bm;							// ustawienie tego bitu odblokowuje ADC
