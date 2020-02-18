@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 def wyrysuj_okres(dane):        
     dane = np.asarray(dane).astype('uint16')
 
+    print(dane.mean())
+
     dane = dane / 4095 
         
     Fs = 1000
