@@ -35,9 +35,15 @@
 
 //			MAKRA OPISUJACE NUMERY PRZEBIEGOW
 #define SINUS_1000_NR			0
-#define PILA_1000_NR			1
-#define MULTI_SIN_1000_NR		2
-#define SINC_1000_NR			3
+#define SINUS_250_NR			1
+#define SINUS_100_NR			2
+#define PILA_1000_NR			3
+#define MULTI_SIN_1000_NR		4
+#define MULTI_SIN_250_NR		5
+#define MULTI_SIN_100_NR		6
+#define SINC_1000_NR			7
+#define SINC_250_NR				8
+#define SINC_100_NR				9
 
 #ifdef KALIB_CZEST
 // makra wykorzystywane do kalibracji czestotliwosci
@@ -60,9 +66,9 @@
 #define STRING_TERMINACJI_LEN		4
 #define LICZBA_ZNAKOW_TERMINACJI	4
 //_____________________________________________________
-#define LICZBA_PROBEK_1000	1
-#define LICZBA_PROBEK_250	2
-#define LICZBA_PROBEK_100	3
+#define LICZBA_PROBEK_1000	0
+#define LICZBA_PROBEK_250	1
+#define LICZBA_PROBEK_100	2
 //_____________________________________________________
 //	pozycje bitowe peryferiow w PR.PRGEN itp - do WLACZENIA
 #define PRGEN_EVSYS (1<<1)
@@ -86,9 +92,10 @@ bool OSC_wait_for_rdy(uint8_t clk);
 void SelectPLL(OSC_PLLSRC_t src, uint8_t mult);
 //----------------------------------------------------
 //				FUNKCJE POMIAROWE
-void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek);	  // sama generacja
-void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie);				  // sam pomiar
+void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek);		// sama generacja
+void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie);					// sam pomiar
 void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek);
+void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie);						// wykorzystanie SINC
 //----------------------------------------------------
 //				FUNKCJE KONWERSJI
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
