@@ -247,7 +247,7 @@ void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie)
 	{
 		probki_pomiaru[i] = 0;
 	}
-	/**********************************************************************************/
+	//------------------------------------------------------------------------------
 	
 	// inicjalizacja DMA
 	DMA_initTransfer_ADC( probki_pomiaru , liczba_probek * sizeof( uint16_t ) );
@@ -271,6 +271,10 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 	{
 		case SINUS_1000_NR :	memcpy_P(probki_sygnalu,sinus_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
+		case SINUS_250_NR :	memcpy_P(probki_sygnalu,sinus_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		break;
+		case SINUS_100_NR :	memcpy_P(probki_sygnalu,sinus_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		break;
 		case PILA_1000_NR :		memcpy_P(probki_sygnalu,pila_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case MULTI_SIN_1000_NR : memcpy_P(probki_sygnalu,multi_sin_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
@@ -290,6 +294,54 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 		default :				memcpy_P(probki_sygnalu,multi_sin_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 	}
+}
+
+
+void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
+{
+	/*		WYLACZENIE ADC		*/
+	DMA_CH1_CTRLA &= ~(DMA_CH_ENABLE_bm);	// wylaczenie transferu DMA z ADC
+	ADCA_CTRLA |= ADC_FLUSH_bm;				// wyczyszczenie potoku ADC
+	//------------------------------------------------------------------------------
+	/*		WYLACZENIE DMA DAC'A		*/
+	//TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
+	DMA_CH0_CTRLA &= ~(DMA_CH_ENABLE_bm);	// WYLACZENIE transmisji DMA DAC'a
+	//------------------------------------------------------------------------------
+	/*		WYSTAWIENIE WARTOSCI 0 NA DAC'A			*/
+	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
+	DACB.CH0DATA = 0;	// wpisz wartosc do rejestru -> wystaw na wyjscie
+	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
+	//------------------------------------------------------------------------------
+	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
+	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
+	//------------------------------------------------------------------------------
+	/*		 CZYSZCZENIE TABLICY PROBEK		*/
+	for(uint16_t i = 0;i<liczba_probek;i++)
+	{
+		probki_pomiaru[i] = 0;
+	}
+	//------------------------------------------------------------------------------
+	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
+	WyborPrzebiegu(SINC_1000_NR,liczba_probek); // na razie grzadkowo - siewnie ;) -> switch(liczba_probek)...
+	//------------------------------------------------------------------------------
+	/*		 INICJALIZACJA DMA		*/
+	DMA_initTransfer_ADC( probki_pomiaru , liczba_probek * sizeof( uint16_t ) );
+	DMA_initTransfer_DAC_imp(probki_sygnalu,liczba_probek * sizeof( uint16_t ) );
+	//------------------------------------------------------------------------------
+	/*		 START TIMERA		*/
+	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
+	// odczekaj do stanu ustalonego
+	for(uint16_t i = 0; i< opoznienie;i++)
+	{
+		_delay_ms(10); // czekaj 10 ms
+	}
+	//------------------------------------------------------------------------------
+	/*		URUCHOMIENIE DAC		*/
+	DMA_CH0_CTRLA |= DMA_CH_ENABLE_bm; //DAC
+	//------------------------------------------------------------------------------
+	/*		URUCHOMIENIE ADC		*/
+	DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
+	DMA_CH1_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie DMA po koncu transmisji bloku
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE KONWERSJI
@@ -405,6 +457,7 @@ void SelectPLL(OSC_PLLSRC_t src, uint8_t mult)
 //--------------------------------------------------------------------------------------------------
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[])
 {
+	uint8_t flagi_pomiaru;
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
 		case 'G' :	// Generacja
@@ -425,7 +478,15 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
 			break;
 		case 'P' : // Pomiar
-			PomiarOkresowyADC(*liczba_probek,ramka_danych[POM_DELAY_Bp]);
+			flagi_pomiaru = ramka_danych[POM_FLAGI_Bp]; // odczyt flag pomiaru
+			if (flagi_pomiaru & 0x02)
+			{
+				PomiarImpulsowy(*liczba_probek,ramka_danych[POM_DELAY_Bp]);
+			}
+			else
+			{
+				PomiarOkresowyADC(*liczba_probek,ramka_danych[POM_DELAY_Bp]);	
+			}
 			break;
 		default :	break;
 	}
