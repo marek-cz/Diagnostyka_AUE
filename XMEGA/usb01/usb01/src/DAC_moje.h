@@ -14,10 +14,14 @@
 #define LICZBA_PROBEK_W_TABLICY_MAX 1000
 //#define KALIB_CZEST 
 
-extern const uint16_t multi_sin_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX]; // probki sygnalu wieloharmonicznego
-extern const uint16_t sinc_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX];	  // probki sygnalu sinc
-extern const uint16_t sinus_1000[LICZBA_PROBEK_W_TABLICY_MAX];	  // probki sygnalu sinusa
-extern const uint16_t pila_1000[LICZBA_PROBEK_W_TABLICY_MAX]; // probki sygnalu pily (rampa)
+extern const uint16_t multi_sin_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX];	// probki sygnalu wieloharmonicznego
+extern const uint16_t sinc_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX];		// probki sygnalu sinc
+extern const uint16_t sinc_wave_250[250];		// probki sygnalu sinc
+extern const uint16_t sinc_wave_100[100];		// probki sygnalu sinc
+extern const uint16_t sinus_1000[LICZBA_PROBEK_W_TABLICY_MAX];			// probki sygnalu sinusa
+extern const uint16_t sinus_250[250];			// probki sygnalu sinusa
+extern const uint16_t sinus_100[100];			// probki sygnalu sinusa
+extern const uint16_t pila_1000[LICZBA_PROBEK_W_TABLICY_MAX];			// probki sygnalu pily (rampa)
 
 #ifdef KALIB_CZEST
 	extern const uint16_t sqr_2[2];
