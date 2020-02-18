@@ -14,7 +14,7 @@ void DMA_init(void)
 	/* KANAL 0 -> DAC */
 	DMA.CH0.ADDRCTRL=DMA_CH_SRCRELOAD_BLOCK_gc | DMA_CH_SRCDIR_INC_gc | DMA_CH_DESTDIR_INC_gc | DMA_CH_DESTRELOAD_BURST_gc; //Zwiekszamy adres Ÿród³a i przeznaczenia, reload adresu co blok, adres docelowy co paczkê
 	DMA.CH0.TRIGSRC=DMA_CH_TRIGSRC_DACB_CH0_gc; //Zdarzeniem wyzwalaj¹cym jest pusty rejestr danych kana³u CH0 DACB
-	DMA.CH0.REPCNT=0;                           //Transfer bêdzie pwtarzany w nieskoñczonoœæ
+	//DMA.CH0.REPCNT=0;                           //Transfer bêdzie pwtarzany w nieskoñczonoœæ
 	DMA.CH0.DESTADDR0=(uint16_t)(&DACB.CH0DATA) & 0xFF; //Dane wpisujemy do rejestru DATA uk³adu DAC
 	DMA.CH0.DESTADDR1=(uint16_t)(&DACB.CH0DATA) >> 8;
 	DMA.CH0.DESTADDR2=0;
@@ -48,8 +48,21 @@ void DMA_initTransfer_DAC( volatile uint16_t * src ,uint16_t len)
 	DMA.CH0.SRCADDR0 = ((uint16_t)src) & 0xFF;
 	DMA.CH0.SRCADDR1 = ((uint16_t)src) >> 8;
 	DMA.CH0.SRCADDR2=0;
-		
+	
+	DMA.CH0.REPCNT=0;     //Transfer bêdzie pwtarzany w nieskoñczonoœæ	
 	DMA.CH0.TRFCNT = len; // blok ma dlugosc tablicy probek 
+	//DMA.CH0.CTRLA=DMA_CH_ENABLE_bm | DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
+	DMA.CH0.CTRLA= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
+}
+
+void DMA_initTransfer_DAC_imp( volatile uint16_t * src ,uint16_t len) // do pomiaru impulsowego
+{
+	DMA.CH0.SRCADDR0 = ((uint16_t)src) & 0xFF;
+	DMA.CH0.SRCADDR1 = ((uint16_t)src) >> 8;
+	DMA.CH0.SRCADDR2=0;
+	
+	DMA.CH0.REPCNT=1;     // tylko 1 (JEDEN!!!) TRANSFER
+	DMA.CH0.TRFCNT = len; // blok ma dlugosc tablicy probek
 	//DMA.CH0.CTRLA=DMA_CH_ENABLE_bm | DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
 	DMA.CH0.CTRLA= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
 }
