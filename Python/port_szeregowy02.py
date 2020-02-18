@@ -13,7 +13,10 @@ POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
 LICZBY_PROBEK = [1000,250,100]
 F_MAX = [1000,4000,10000]
 LICZBA_PROBEK_f_MAX = [(1000,1000),(250,4000),(100,10000)]
-PRZEBIEGI = {"SINUS_1000_NR" : 0 , "PILA_1000_NR" : 1, "MULTI_SIN_1000_NR" : 2, "SINC_1000_NR":3}
+PRZEBIEGI = {"SINUS_1000_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
+             "PILA_1000_NR":3,"MULTI_SIN_1000_NR" : 4, "MULTI_SIN_250_NR" : 5,
+             "MULTI_SIN_100_NR" : 6, "SINC_1000_NR" : 7,"SINC_250_NR" : 8,
+             "SINC_100_NR" : 9}
 TERMINATOR = b'\x24'
 TERMINATOR_STRING = '$$$$'
 LICZBA_ZNAKOW_TERMINACJI = 4
@@ -100,6 +103,20 @@ def PomiarOkres():
     funkcje.wyrysuj_okres(dane)
     return True
 ####################################################################
+def PomiarImp():
+    print("Pomiar Impulsowy")
+    delay = int(input("\nPodaj opóźnienie (x10ms)\n"))
+    if delay > 255 : delay = 255
+    ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
+    NadajCOM(ramka)
+    dane = OdczytajPomiar()
+    dane = dane.strip('$')
+    dane = dane.split()
+    #dane.remove(TERMINATOR_STRING)
+    print(dane)
+    funkcje.wyrysuj_okres(dane)
+    return True
+####################################################################
 def Widmo():
     print("Widmo")
     return True
@@ -111,7 +128,7 @@ def Wyjscie():
 def NadajCOM(ramka):
     ramka = ramka + "$$$$"
     print("długosc ramki ", len(ramka))
-    print("\n",ramka,"\n")
+    print("\n",ramka,"\n",ramka.encode(),"\n")
     port_szeregowy.write(ramka.encode())
     dane = port_szeregowy.read(len(ramka))
     print('\n\n\n')
@@ -153,11 +170,12 @@ menu1 = """Co chcesz zrobic?
 1. Generacja - dopasowane czestotliwosc
 2. Generacja - maksymalna liczba probek
 3. Pomiar Okresowy
-4. Widmo
-5. Wyjsc
+4. Pomiar Impulsowy
+5. Widmo
+6. Wyjsc
 """
 
-slownik_funkcji = {'1':GeneracjaDopCzest,'2':GeneracjaMaxProb,'3':PomiarOkres,'4': Widmo,'5' : Wyjscie}
+slownik_funkcji = {'1':GeneracjaDopCzest,'2':GeneracjaMaxProb,'3':PomiarOkres, '4':PomiarImp ,'5': Widmo,'6' : Wyjscie}
 #input()        # BREAKPOINT
 iteracje = True
 portCOM = WyborPortuCOM()
