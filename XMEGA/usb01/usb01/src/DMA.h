@@ -12,6 +12,7 @@
 extern void DMA_init(void);
 extern void DMA_initTransfer_ADC( volatile uint16_t * dst ,uint16_t len);
 extern void DMA_initTransfer_DAC( volatile uint16_t * src ,uint16_t len);
+extern void DMA_initTransfer_DAC_imp( volatile uint16_t * src ,uint16_t len);
 
 
 
