@@ -8,6 +8,7 @@ import funkcje
 
 
 ####################################################################
+# stale
 F_CPU = 32000000# 32 MHz
 POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
 LICZBY_PROBEK = [1000,250,100]
@@ -22,6 +23,9 @@ KONCOWKA_LICZBA_PROBEK = ["_1000_NR","_250_NR","_100_NR"]
 TERMINATOR = b'\x24'
 TERMINATOR_STRING = '$$$$'
 LICZBA_ZNAKOW_TERMINACJI = 4
+####################################################################
+# zmienne globalne
+czestotliwosc = 1000
 ####################################################################
 def PER_na_2_znaki(PER):
     T1 = PER // 256 # STARSZY BAJT
@@ -78,6 +82,7 @@ def GeneracjaDopCzest():
     return True
 ####################################################################
 def GeneracjaMaxProb():
+    global czestotliwosc
     print("GeneracjaMaxProb")
     for i in range( len( KSZTALTY ) ):
         print(i,". ",KSZTALTY[i])
@@ -106,7 +111,7 @@ def PomiarOkres():
     dane = dane.split()
     #dane.remove(TERMINATOR_STRING)
     print(dane)
-    funkcje.wyrysuj_okres(dane)
+    funkcje.wyrysuj_okres(dane,czestotliwosc)
     return True
 ####################################################################
 def PomiarImp():
@@ -120,7 +125,7 @@ def PomiarImp():
     dane = dane.split()
     #dane.remove(TERMINATOR_STRING)
     print(dane)
-    funkcje.wyrysuj_okres(dane)
+    funkcje.wyrysuj_okres(dane,czestotliwosc)
     return True
 ####################################################################
 def Widmo():
