@@ -2,14 +2,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def wyrysuj_okres(dane):        
+def wyrysuj_okres(dane,czestotliwosc_podstawowa_przebiegu):        
     dane = np.asarray(dane).astype('uint16')
 
     print(dane.mean())
 
     dane = dane / 4095 
         
-    Fs = 1000
+    Fs = len(dane)
     n = len(dane) # length of the signal
     k = np.arange(n)
     T = n/Fs
@@ -33,7 +33,7 @@ def wyrysuj_okres(dane):
     ax[0].set_ylabel('Amplituda [V]')
     ax[0].set_title('Probki z ADC')
     #ax[1].plot(frq,np.abs(Y),'bo') # plotting the spectrum
-    ax[1].plot( frq ,Y_abs_dB,'bo') # plotting the spectrum
+    ax[1].plot( frq * czestotliwosc_podstawowa_przebiegu ,Y_abs_dB,'bo') # plotting the spectrum
     ax[1].set_xscale('log')
     ax[1].set_xlabel('Czestotliwosc [Hz]')
     ax[1].set_ylabel('|Y(f)| dB')
