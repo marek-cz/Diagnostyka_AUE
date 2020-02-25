@@ -15,6 +15,8 @@
 //#define KALIB_CZEST 
 
 extern const uint16_t multi_sin_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX];	// probki sygnalu wieloharmonicznego
+extern const uint16_t multi_sin_wave_250[250];	// probki sygnalu wieloharmonicznego
+extern const uint16_t multi_sin_wave_100[100];	// probki sygnalu wieloharmonicznego
 extern const uint16_t sinc_wave_1000[LICZBA_PROBEK_W_TABLICY_MAX];		// probki sygnalu sinc
 extern const uint16_t sinc_wave_250[250];		// probki sygnalu sinc
 extern const uint16_t sinc_wave_100[100];		// probki sygnalu sinc
