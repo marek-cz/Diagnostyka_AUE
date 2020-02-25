@@ -17,6 +17,8 @@ PRZEBIEGI = {"SINUS_1000_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
              "PILA_1000_NR":3,"MULTI_SIN_1000_NR" : 4, "MULTI_SIN_250_NR" : 5,
              "MULTI_SIN_100_NR" : 6, "SINC_1000_NR" : 7,"SINC_250_NR" : 8,
              "SINC_100_NR" : 9}
+KSZTALTY = ["SINUS","PILA","MULTI_SIN","SINC"]
+KONCOWKA_LICZBA_PROBEK = ["_1000_NR","_250_NR","_100_NR"]
 TERMINATOR = b'\x24'
 TERMINATOR_STRING = '$$$$'
 LICZBA_ZNAKOW_TERMINACJI = 4
@@ -77,12 +79,16 @@ def GeneracjaDopCzest():
 ####################################################################
 def GeneracjaMaxProb():
     print("GeneracjaMaxProb")
-    for przebieg in PRZEBIEGI:
-        print(PRZEBIEGI[przebieg],". ",przebieg)
+    for i in range( len( KSZTALTY ) ):
+        print(i,". ",KSZTALTY[i])
     przebieg = int(input("\nWybierz przebieg\n"))
     czestotliwosc = int(input("\nPodaj czestotliwosc [Hz]\n"))
 
     PER,liczba_probek = DobierzPER(czestotliwosc)
+    przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
+    przebieg = PRZEBIEGI[przebieg_string]
+
+    print(przebieg,PER,liczba_probek)
 
     ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     NadajCOM(ramka)
