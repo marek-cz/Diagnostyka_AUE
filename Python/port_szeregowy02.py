@@ -26,6 +26,7 @@ LICZBA_ZNAKOW_TERMINACJI = 4
 ####################################################################
 # zmienne globalne
 czestotliwosc = 1000
+PER_INT = 31
 ####################################################################
 def PER_na_2_znaki(PER):
     T1 = PER // 256 # STARSZY BAJT
@@ -83,13 +84,15 @@ def GeneracjaDopCzest():
 ####################################################################
 def GeneracjaMaxProb():
     global czestotliwosc
+    global PER_INT
     print("GeneracjaMaxProb")
     for i in range( len( KSZTALTY ) ):
         print(i,". ",KSZTALTY[i])
     przebieg = int(input("\nWybierz przebieg\n"))
     czestotliwosc = int(input("\nPodaj czestotliwosc [Hz]\n"))
 
-    PER,liczba_probek = DobierzPER(czestotliwosc)
+    PER_INT,liczba_probek = DobierzPER(czestotliwosc)
+    PER = PER_INT
     przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
     przebieg = PRZEBIEGI[przebieg_string]
 
@@ -111,7 +114,7 @@ def PomiarOkres():
     dane = dane.split()
     #dane.remove(TERMINATOR_STRING)
     print(dane)
-    funkcje.wyrysuj_okres(dane,czestotliwosc)
+    funkcje.wyrysuj_okres(dane,PER_INT)
     return True
 ####################################################################
 def PomiarImp():
@@ -125,7 +128,7 @@ def PomiarImp():
     dane = dane.split()
     #dane.remove(TERMINATOR_STRING)
     print(dane)
-    funkcje.wyrysuj_okres(dane,czestotliwosc)
+    funkcje.wyrysuj_okres(dane,PER_INT)
     return True
 ####################################################################
 def Widmo():
