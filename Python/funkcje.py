@@ -2,20 +2,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def wyrysuj_okres(dane,czestotliwosc_podstawowa_przebiegu):        
+def wyrysuj_okres(dane,PER):        
+    F_CPU = 32000000 # 32 MHz - czestotliwosc taktowania rdzenia
     dane = np.asarray(dane).astype('uint16')
 
     print(dane.mean())
 
     dane = dane / 4095 
         
-    Fs = len(dane)
+    fs = F_CPU/(PER + 1) # czestotliwosc probkowania
+    
     n = len(dane) # length of the signal
     k = np.arange(n)
-    T = n/Fs
-    frq = k/T # two sides frequency range
+    frq = k * (fs/n) # czestotliwosc - widmo sie powiela!
 
-    frq = frq[range(int(n/2))] # one side frequency range
+    frq = frq[range(int(n/2))] # bierzemy tylko polowe, zeby nie powielac widma
 
     #Y = np.fft.fft(dane - dane.mean())/n # usuniecie wartosci sredniej
     Y = np.fft.fft(dane)/n # fft computing and normalization
@@ -30,10 +31,10 @@ def wyrysuj_okres(dane,czestotliwosc_podstawowa_przebiegu):
     fig, ax = plt.subplots(2,1)
     ax[0].plot(dane,'b')
     ax[0].set_xlabel('Probka n')
-    ax[0].set_ylabel('Amplituda [V]')
+    ax[0].set_ylabel('U(t) [V]')
     ax[0].set_title('Probki z ADC')
     #ax[1].plot(frq,np.abs(Y),'bo') # plotting the spectrum
-    ax[1].plot( frq * czestotliwosc_podstawowa_przebiegu ,Y_abs_dB,'bo') # plotting the spectrum
+    ax[1].plot( frq,Y_abs_dB,'bo') # plotting the spectrum
     ax[1].set_xscale('log')
     ax[1].set_xlabel('Czestotliwosc [Hz]')
     ax[1].set_ylabel('|Y(f)| dB')
