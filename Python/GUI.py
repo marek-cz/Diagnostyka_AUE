@@ -97,6 +97,8 @@ label1.grid(column = 0, row = 0)
 
 label2 = tk.Label(ramka_czestotliwosc, text = "Częstotliwość [Hz] : ", font =('Arial', 12))
 label2.grid(column = 0, row = 0)
+label4 = tk.Label(ramka_czestotliwosc, text = "Opoznienie [ms] : ", font =('Arial', 12))
+label4.grid(column = 0, row = 1, sticky = 'w')
 
 label3 = tk.Label(ramka_opcje, text = "Opcje pomiaru : ", font =('Arial', 12))
 label3.grid(column = 0, row = 0)
@@ -105,6 +107,10 @@ label3.grid(column = 0, row = 0)
 entry_field = tk.Entry(ramka_czestotliwosc, width = 5)
 entry_field.insert(0,"1000")
 entry_field.grid(column = 1, row = 0)
+
+entry_field2 = tk.Entry(ramka_czestotliwosc, width = 5)
+entry_field2.insert(0,"10")
+entry_field2.grid(column = 1, row = 1)
 #------------------------------------------------------------------------------------------------------
 # Chechbox'y:
 wiersz = 2
