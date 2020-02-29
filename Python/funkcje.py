@@ -23,7 +23,7 @@ def wyrysuj_okres(dane,PER):
     Y = Y[range(int(n/2))]
 
     Y_abs = np.abs(Y)
-    Y_abs /= Y_abs[1:].max()
+    #Y_abs /= Y_abs[1:].max()
     
     Y_abs_dB = 20 * np.log10(Y_abs)
 
