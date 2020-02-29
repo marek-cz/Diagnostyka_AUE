@@ -8,16 +8,17 @@ import GUI_backend as backend
 okno = tk.Tk()
 #### tytul okna
 okno.title( "Diagnostyka AUE" )
-okno.geometry("250x250")
+#okno.geometry("250x250")
 okno.resizable(False, False)
 #------------------------------------------
 #           ZMIENNE GLOBALNE
 portyCOM = [] # LISTA ZAWIERAJACA PORTY COM
 wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru COM
 wyborTypuPomiaru = tk.StringVar()
-typyPomiaru = ["Wieloharmoniczny","Impulsowy"]
+typyPomiaru = ["Sinus","Pila","Wieloharmoniczny","Impulsowy"]
 czestotliwosc = 1000
-opcje = ["Generacja","Widmo na MCU","Diagnozuj","Wyswietl"]
+opoznienie_ms = 10
+opcje = ["Generacja","Pomiar","Wyrysuj dane","Widmo na MCU","Diagnozuj"]
 zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
@@ -27,13 +28,22 @@ for opcja in opcje:
 #           FUNKCJE
 def funkcjaPrzycisku1():
     global czestotliwosc
-    print("Czestotliwosc: ",entry_field.get())
-    czestotliwosc = entry_field.get() # pobranie wartosci czestotliwosci
+    global opoznienie_ms
+    opcje = {} # slownik na opcje do wyslania do analizy-> bez koniecznosci tk
+    print("Czestotliwosc [Hz]: ",entry_field_czestotliwosc.get())
+    czestotliwosc = int(entry_field_czestotliwosc.get() )# pobranie wartosci czestotliwosci
+    print("Opoznienie [ms]: ",entry_field_opoznienie.get())
+    opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
     print("Opcje pomiaru: ")
     for opcja in zmienneOpcji:
         print(opcja, ": " ,zmienneOpcji[opcja].get(), " \n")
+        opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
     print("Typ pomiaru: ", wyborTypuPomiaru.get() )
     print("Port szeregowy: ", wyborPortuCOM.get() )
+
+    
+    backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get())
+    
 def zmianaCOM(*args): # function called when var changes
     print(wyborPortuCOM.get())  # this is where you'd set another variable to var.get()
 
@@ -47,19 +57,22 @@ def WypiszPortyCOM():
     for port in portyCOM:
         COM_menu.delete(port)
     # odswiezenie listy portow
-    portyCOM = ["COM 1","COM 2","COM 3","COM 4","COM 5","COM 6"] # DO TESTOW :)
-    #portyCOM = backend.ListaPortowCOM()
+    #portyCOM = ["COM 1","COM 2","COM 3","COM 4","COM 5","COM 6"] # DO TESTOW :)
+    portyCOM = backend.ListaPortowCOM()
     # wstawienie do menu nowych portow
     for port in portyCOM :
         COM_menu.add_radiobutton(label = port, value = port, variable = wyborPortuCOM )
-    
+
+def ZamknijProgram():
+    okno.destroy()
+ 
 #------------------------------------------------------------------------------------------------------
 # top menu:
 menu1 = tk.Menu(okno)
 # nizsze warstwy menu:
 program_menu = tk.Menu(menu1, tearoff = 0) # tearoff = 0 -> menu sie nie "odrywa"
 program_menu.add_separator()
-program_menu.add_command(label = "Zamknij", command = okno.destroy) # zamyka aplikacje
+program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
 
 menu1.add_cascade(label = "Program", menu = program_menu)
 
@@ -73,7 +86,7 @@ for typ_pomiaru in typyPomiaru:
     print(typ_pomiaru)
     Pomiar_menu.add_radiobutton(label = typ_pomiaru, value = typ_pomiaru, variable = wyborTypuPomiaru)
 wyborTypuPomiaru.set(typyPomiaru[0]) # domyslna wartosc
-menu1.add_cascade(label="Pomiar", menu=Pomiar_menu)
+menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
 
 okno.config(menu = menu1)
 #------------------------------------------------------------------------------------------------------
@@ -104,13 +117,13 @@ label3 = tk.Label(ramka_opcje, text = "Opcje pomiaru : ", font =('Arial', 12))
 label3.grid(column = 0, row = 0)
 #------------------------------------------------------------------------------------------------------
 # Entry fields
-entry_field = tk.Entry(ramka_czestotliwosc, width = 5)
-entry_field.insert(0,"1000")
-entry_field.grid(column = 1, row = 0)
+entry_field_czestotliwosc = tk.Entry(ramka_czestotliwosc, width = 5)
+entry_field_czestotliwosc.insert(0,"1000")
+entry_field_czestotliwosc.grid(column = 1, row = 0)
 
-entry_field2 = tk.Entry(ramka_czestotliwosc, width = 5)
-entry_field2.insert(0,"10")
-entry_field2.grid(column = 1, row = 1)
+entry_field_opoznienie = tk.Entry(ramka_czestotliwosc, width = 5)
+entry_field_opoznienie.insert(0,"10")
+entry_field_opoznienie.grid(column = 1, row = 1)
 #------------------------------------------------------------------------------------------------------
 # Chechbox'y:
 wiersz = 2
