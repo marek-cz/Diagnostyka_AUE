@@ -52,7 +52,7 @@ void DMA_initTransfer_DAC( volatile uint16_t * src ,uint16_t len)
 	DMA.CH0.REPCNT=0;     //Transfer bêdzie pwtarzany w nieskoñczonoœæ	
 	DMA.CH0.TRFCNT = len; // blok ma dlugosc tablicy probek 
 	//DMA.CH0.CTRLA=DMA_CH_ENABLE_bm | DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
-	DMA.CH0.CTRLA= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
+	DMA.CH0.CTRLA |= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
 }
 
 void DMA_initTransfer_DAC_imp( volatile uint16_t * src ,uint16_t len) // do pomiaru impulsowego
@@ -64,5 +64,5 @@ void DMA_initTransfer_DAC_imp( volatile uint16_t * src ,uint16_t len) // do pomi
 	DMA.CH0.REPCNT=1;     // tylko 1 (JEDEN!!!) TRANSFER
 	DMA.CH0.TRFCNT = len; // blok ma dlugosc tablicy probek
 	//DMA.CH0.CTRLA=DMA_CH_ENABLE_bm | DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
-	DMA.CH0.CTRLA= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
+	DMA.CH0.CTRLA |= DMA_CH_REPEAT_bm | DMA_CH_BURSTLEN_2BYTE_gc | DMA_CH_SINGLE_bm;  //Kana³ 0 w trybie powtarzania, d³ugoœæ transferu 2 bajty, single shot
 }

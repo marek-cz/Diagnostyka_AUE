@@ -93,7 +93,7 @@ void SelectPLL(OSC_PLLSRC_t src, uint8_t mult);
 //----------------------------------------------------
 //				FUNKCJE POMIAROWE
 void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek);		// sama generacja
-void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie);					// sam pomiar
+void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie);					// sam pomiar
 void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek);
 void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie);						// wykorzystanie SINC
 //----------------------------------------------------

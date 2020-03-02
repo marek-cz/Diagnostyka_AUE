@@ -91,8 +91,6 @@ int main (void)
 	 WlaczPeryferia();
 	 //_delay_ms(3000);
 	 Init();
-	 //Generacja(okres_timera,przebieg,LICZBA_PROBEK_W_TABLICY_MAX);
-	 	
 	 //----------------------------------------------------
 	 //				PETLA GLOWNA 
 	 while(1)
@@ -214,28 +212,26 @@ void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek)
 	/*		WYLACZENIE POPRZEDNIEJ GENERACJI		*/
 	// wylaczenie timera
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;
+	_delay_ms(10);
 	// WYLACZENIE transmisji DMA DAC'a
 	DMA_CH0_CTRLA &= ~(DMA_CH_ENABLE_bm);
 	
 	/*		WLACZENIE NOWEJ GENERACJI		*/
-	
 	// wybor przebiegu generowanego przez DAC
 	WyborPrzebiegu(przebieg,liczba_probek);
 	// ustawienie do ilu ma zliczac licznik
 	TCC0_Init(okres_timerow);
-	//TCD1_Init(okres_timerow);
 	
 	// inicjalizacja DMA
 	DMA_initTransfer_DAC( probki_sygnalu , liczba_probek * sizeof( uint16_t ) );
-	//		START TIMERA - dopoki TCC0 nie jest wlaczony DAC i ADC nie pracuje
-	//TCC0_CTRLA        =    TC_CLKSEL_DIV8_gc;       // ustawienie preskalera i uruchomienie timera ->24/8 = 3 MHz -> DAC i ADC
+	//		START TIMERA - dopoki TCC0 nie jest wlaczony DAC i ADC nie pracuja
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 	// wlaczenie transmisji DMA DAC'a
 	DMA_CH0_CTRLA |= DMA_CH_ENABLE_bm; //DAC
 	_delay_ms(100);
 }
 
-void PomiarOkresowyADC(uint16_t liczba_probek, uint16_t opoznienie)
+void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie)
 {
 	// wylaczenie transferu DMA z ADC
 	DMA_CH1_CTRLA &= ~(DMA_CH_ENABLE_bm);
@@ -285,6 +281,10 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 		break;
 		case SINC_1000_NR :		memcpy_P(probki_sygnalu,sinc_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
+		case SINC_250_NR :		memcpy_P(probki_sygnalu,sinc_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		break;
+		case SINC_100_NR :		memcpy_P(probki_sygnalu,sinc_wave_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		break;
 		#ifdef KALIB_CZEST
 			case SQR_2_NR :			memcpy_P(probki_sygnalu,sqr_2,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 			break;
@@ -313,20 +313,33 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	//------------------------------------------------------------------------------
 	/*		WYSTAWIENIE WARTOSCI 0 NA DAC'A			*/
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
-	DACB.CH0DATA = 0;	// wpisz wartosc do rejestru -> wystaw na wyjscie
+	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
+	switch(liczba_probek)
+	{
+		case 1000 :
+		WyborPrzebiegu(SINC_1000_NR,liczba_probek);
+		break;
+		case 250 :
+		WyborPrzebiegu(SINC_250_NR,liczba_probek);
+		break;
+		case 100 :
+		WyborPrzebiegu(SINC_100_NR,liczba_probek);
+		break;
+		default :
+		break;
+	}
+	DACB.CH0DATA = probki_sygnalu[0];	// wpisz wartosc do rejestru -> wystaw na wyjscie
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
+	_delay_ms(10);
 	//------------------------------------------------------------------------------
 	/*		 CZYSZCZENIE TABLICY PROBEK		*/
 	for(uint16_t i = 0;i<liczba_probek;i++)
 	{
 		probki_pomiaru[i] = 0;
 	}
-	//------------------------------------------------------------------------------
-	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
-	WyborPrzebiegu(SINC_1000_NR,liczba_probek); // na razie grzadkowo - siewnie ;) -> switch(liczba_probek)...
 	//------------------------------------------------------------------------------
 	/*		 INICJALIZACJA DMA		*/
 	DMA_initTransfer_ADC( probki_pomiaru , liczba_probek * sizeof( uint16_t ) );
