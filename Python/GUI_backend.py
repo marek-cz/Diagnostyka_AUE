@@ -42,7 +42,9 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM):
     if (opcje_pomiaru["Pomiar"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(opoznienie)
         else : wyniki_pomiaru = PomiarOkres(opoznienie)
-    if (opcje_pomiaru["Wyrysuj dane"]) : funkcje.wyrysuj_okres(wyniki_pomiaru,PER_INT)
+    if (opcje_pomiaru["Wyrysuj dane"]) :
+        ZamknijCOM(portCOM)
+        funkcje.wyrysuj_okres(wyniki_pomiaru,PER_INT)
     ZamknijCOM(portCOM)
 #-------------------------------------------------------------------------------------------
 def ListaPortowCOM():
