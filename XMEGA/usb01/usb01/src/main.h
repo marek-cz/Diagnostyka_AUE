@@ -9,7 +9,7 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 // czestotliwosc traktowania procesora - potem zmieniana!!!
-#define F_CPU				2000000UL
+//#define F_CPU				2000000UL
 //----------------------------------------------------
 //----------------------------------------------------
 //				BIBLIOTEKI STANDARDOWE
