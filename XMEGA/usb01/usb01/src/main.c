@@ -120,59 +120,6 @@ int main (void)
 			  {
 				  licznik_terminacji = 0;
 			  }
-			 /* switch(ch) 
-			  {
-				  case 's'       :
-				  udi_cdc_write_buf("SINUS\n\r", 7);
-				  przebieg = SINUS_1000_NR;
-				  liczba_probek = 1000;
-				  Generacja(okres_timera,przebieg,liczba_probek);
-				  break;
-				  case 'm'       :
-				  udi_cdc_write_buf("MULTISIN\n\r", 10);
-				  przebieg = MULTI_SIN_1000_NR;
-				  liczba_probek = 1000;
-				  Generacja(okres_timera,przebieg,liczba_probek);
-				  break;
-				  case 'p'       :
-				  udi_cdc_write_buf("POMIAR!\n\r", 9);
-				  PomiarOkresowyADC(LICZBA_PROBEK_W_TABLICY_MAX,10);
-				  _delay_ms(500);
-				  NadajWynik(probki_pomiaru,LICZBA_PROBEK_W_TABLICY_MAX);
-				  break;
-				  case 'f'       :
-				  printf("\n\r WIDMO \n\r");
-				  //oblicz_DFT(1,1000,probki_sygnalu);
-				  y_int = (unsigned long int)(WIDMO_FLOAT_TO_UINT * oblicz_DFT(1,1000,probki_pomiaru));
-				  printf("\n\r po widmie :) %lu \n\r", y_int);
-				  break;
-				  #ifdef KALIB_CZEST
-					case '1'       :
-					przebieg = SQR_2_NR;
-					liczba_probek = 2;
-					Generacja(okres_timera,przebieg,liczba_probek);
-					break;
-					case '2'       :
-					przebieg = SQR_10_NR;
-					liczba_probek = 10;
-					Generacja(okres_timera,przebieg,liczba_probek);
-					break;
-					case '3'       :
-					przebieg = SQR_100_NR;
-					liczba_probek = 100;
-					Generacja(okres_timera,przebieg,liczba_probek);
-					break;
-					case '4'       :
-					przebieg = SQR_1000_NR;
-					liczba_probek = 1000;
-					Generacja(okres_timera,przebieg,liczba_probek);
-					break;
-				  #endif
-				  default        :
-				  udi_cdc_write_buf("O co chodzi?\n\r", 14);
-				  break;
-			  }
-			  */
 		  }
 		  
 		  if (flagi & KONIEC_ZBIERANIA_PROBEK)
@@ -193,8 +140,8 @@ void Init(void)
 	SelectPLL(OSC_PLLSRC_RC2M_gc, 16);	// 32 MHz na wyjsciu PLL
 	CPU_CCP = CCP_IOREG_gc;				// odblokowanie zmiany konfiguracji zegara
 	CLK_CTRL = CLK_SCLKSEL_PLL_gc;		// taktowanie procesora 32 MHz
-	#undef  F_CPU
-	#define F_CPU 32000000UL
+	//#undef  F_CPU
+	//#define F_CPU 32000000UL
 	ADCA.CALL=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL0));
 	ADCA.CALH=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL1));
 	sei();	// globalne odblokowanie przerwan
@@ -460,7 +407,8 @@ bool OSC_wait_for_rdy(uint8_t clk)
 {
 	uint8_t czas=255;
 	while ((!(OSC.STATUS & clk)) && (--czas)) // Czekaj na ustabilizowanie siê generatora
-	_delay_ms(1);
+	//_delay_ms(1);
+	_delay_ms(16); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz ...
 	return czas;   //false jeœli generator nie wystartowa³, true jeœli jest ok
 }
 
