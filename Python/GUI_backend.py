@@ -16,7 +16,7 @@ PRZEBIEGI = {"SINUS_1000_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
              "PILA_1000_NR":3,"MULTI_SIN_1000_NR" : 4, "MULTI_SIN_250_NR" : 5,
              "MULTI_SIN_100_NR" : 6, "SINC_1000_NR" : 7,"SINC_250_NR" : 8,
              "SINC_100_NR" : 9}
-KSZTALTY = ["SINUS","PILA","MULTI_SIN","SINC"]
+KSZTALTY = ["SINUS","MULTI_SIN","SINC"]
 KONCOWKA_LICZBA_PROBEK = ["_1000_NR","_250_NR","_100_NR"]
 TERMINATOR = b'\x24'
 TERMINATOR_STRING = '$$$$'
@@ -24,7 +24,7 @@ LICZBA_ZNAKOW_TERMINACJI = 4
 # opcje transmisji
 BAUDRATE = 9600
 TIMEOUT = None
-POMIAR_IMPULSOWY = 3
+POMIAR_IMPULSOWY = 2
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
@@ -85,11 +85,12 @@ def PomiarOkres(delay):
 #-------------------------------------------------------------------------------------------
 
 def PomiarImp(delay):
-    #print("Pomiar Impulsowy")
+    print("Pomiar Impulsowy")
     delay = int(delay)
     delay = delay // 10
     if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
+    print(ramka.encode())
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     dane = dane.strip('$')
