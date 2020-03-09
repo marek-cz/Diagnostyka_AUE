@@ -66,7 +66,7 @@
 #define WIDMO_CZEST_MSB_Bp			2
 #define WIDMO_CZEST_LSB_Bp			3
 #define WIDMO_DFT					0
-#define WIDMO_TF					'I'
+#define WIDMO_TF					2
 #define ZNAK_TERMINACJI				'$'
 #define STRING_TERMINACJI			"$$$$"
 #define STRING_TERMINACJI_LEN		4
@@ -83,6 +83,7 @@
 #define PRPA_ADC (1<<1)
 #define PRPB_DAC (1<<2)
 #define PRPC_TC0 (1<<0)
+#define PRPC_TC1 (1<<1)
 
 //	makra do obliczen
 #define ADC_MAX_F 4095.0
@@ -102,6 +103,7 @@ void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek);
 void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie);					// sam pomiar
 void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek);
 void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie);						// wykorzystanie SINC
+void delayTCC1(uint16_t ms);
 //----------------------------------------------------
 //				FUNKCJE KONWERSJI
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
@@ -111,6 +113,6 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
 void WlaczPeryferia(void);
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
-float oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera );
+double oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera );
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
 #endif /* MAIN_H_ */

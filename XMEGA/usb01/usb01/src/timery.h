@@ -10,8 +10,9 @@
 #define TIMERY_H_
 
 #include <avr/io.h>
+#define PER_1_ms 30
 
-//extern void TCC1_Init(uint16_t per);
+extern void TCC1_Init(uint16_t per);
 extern void TCC0_Init(uint16_t per);
 
 #endif /* TIMERY_H_ */

@@ -7,14 +7,14 @@
 
 #include "timery.h"
 
-/*void TCC1_Init(uint16_t per)
+void TCC1_Init(uint16_t per)
 {
 	// konfiguracja przerwania od przepelnienia
-	//TCC1.INTCTRLA = TC_OVFINTLVL_LO_gc;					// przepe³nienie TCC1 ma generowaæ przerwanie LO -> priorytety przerwan
+	TCC1.INTCTRLA = TC_OVFINTLVL_MED_gc;				// przepe³nienie TCC1 ma generowaæ przerwanie MED -> priorytety przerwan
 	TCC1.CTRLB	  = TC_WGMODE_NORMAL_gc;				// tryb normalny
 	TCC1.PER	  =	per;								// LICZ MODULO per - przepelnienie co per+1
-	//EVSYS_CH0MUX  = EVSYS_CHMUX_TCC1_OVF_gc;			// przepelnienie TCC1 -> syst. zdarzen -> wyzwala DAC
-}*/
+	TCC1_CTRLA    = TC_CLKSEL_DIV1024_gc;				// w³aczenie timera
+}
 
 void TCC0_Init(uint16_t per)
 {
@@ -24,4 +24,5 @@ void TCC0_Init(uint16_t per)
 	TCC0.PER	  =	per;								// LICZ MODULO per
 	EVSYS_CH0MUX  = EVSYS_CHMUX_TCC0_OVF_gc;			// przepelnienie TCC0 -> syst. zdarzen -> wyzwala DAC
 }
+
 

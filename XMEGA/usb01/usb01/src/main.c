@@ -37,6 +37,7 @@
 uint16_t probki_sygnalu[LICZBA_PROBEK_W_TABLICY_MAX];
 uint16_t probki_pomiaru[LICZBA_PROBEK_W_TABLICY_MAX];
 volatile uint8_t flagi = 0;
+volatile uint16_t licznik_ms = 0;
 //-----------------------------------------------------------------------------------------------
 //				DEKLARACJE FUNKCJI
 
@@ -63,6 +64,11 @@ ISR(DMA_CH1_vect) // przerwanie po transmisji bloku
 	// wyczyszczenie flagi przerwania
 	DMA_CH1_CTRLB |= DMA_CH_TRNIF_bm;
 	flagi |= KONIEC_ZBIERANIA_PROBEK;
+}
+
+ISR(TCC1_OVF_vect)
+{
+	licznik_ms++;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -195,11 +201,7 @@ void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	DMA_initTransfer_ADC( probki_pomiaru , liczba_probek * sizeof( uint16_t ) );
 	
 	// odczekaj do stanu ustalonego
-	for(i = 0; i< opoznienie;i++)
-	{
-		_delay_ms(10); // czekaj 10 ms
-	}
-	
+	delayTCC1(opoznienie);
 	//DMA_CH0_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie po koncu transmisji bloku -> czekamy aby zaczac pomiar od POCZATKU OKRESU!
 	//		-- NIE SYNCHRONIZUJEMY FAZ SYGNALOW IN I OUT!!! --
 	DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
@@ -279,7 +281,7 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
-	_delay_ms(10);
+	//_delay_ms(10);
 	//------------------------------------------------------------------------------
 	/*		 CZYSZCZENIE TABLICY PROBEK		*/
 	for(uint16_t i = 0;i<liczba_probek;i++)
@@ -294,10 +296,7 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	/*		 START TIMERA		*/
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 	// odczekaj do stanu ustalonego
-	for(uint16_t i = 0; i< opoznienie;i++)
-	{
-		_delay_ms(10); // czekaj 10 ms
-	}
+	delayTCC1(opoznienie);
 	//------------------------------------------------------------------------------
 	/*		URUCHOMIENIE DAC		*/
 	DMA_CH0_CTRLA |= DMA_CH_ENABLE_bm; //DAC
@@ -305,6 +304,15 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	/*		URUCHOMIENIE ADC		*/
 	DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
 	DMA_CH1_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie DMA po koncu transmisji bloku
+}
+
+void delayTCC1(uint16_t ms)
+{
+	licznik_ms = 0; // dla bezpieczenstwa :)
+	TCC1_Init(PER_1_ms);
+	while(licznik_ms < ms);
+	TCC1_CTRLA = TC_CLKSEL_OFF_gc; // WYLACZENIE TIMERA
+	licznik_ms = 0;
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE KONWERSJI
@@ -358,7 +366,7 @@ void WlaczPeryferia(void)
 	PR.PRGEN &= ~(PRGEN_EVSYS | PRGEN_DMA);// USB NIE WLACZAMY -> zakladam ze zostalo wlaczone w ASF
 	PR.PRPA  &= ~(PRPA_ADC);
 	PR.PRPB  &= ~(PRPB_DAC);
-	PR.PRPC  &= ~(PRPC_TC0);
+	PR.PRPC  &= ~(PRPC_TC0 | PRPC_TC1);
 }
 
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
@@ -380,13 +388,13 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 
 }
 
-float oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera )
+double oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera )
 {
 	float w = 2 * M_PI * (float)f; // pulsacja
 	float T =  ((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
-	float ReU    = 0.0;
-	float ImU    = 0.0;
-	float ModulU = 0.0;
+	double ReU    = 0.0;
+	double ImU    = 0.0;
+	double ModulU = 0.0;
 	float tn = 0.0;
 	float tn_p1;;
 	float a; // wspolczynnik kierunkowy
@@ -431,8 +439,15 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 	union
 	{
 		float widmo;
-		char c[4]; // float ma dlugosc 32 bitow 32/8 = 4
+		char c[sizeof(float)]; // float ma dlugosc 32 bitow 32/8 = 4
 	} unia_widmo;
+	
+	union
+	{
+		double widmo;
+		char c[sizeof(double)];	
+	}unia_widmo_double;
+	
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
 		case 'G' :	// Generacja
@@ -469,14 +484,15 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			{
 				// TRANSFORMATA FOURIERA
 				czestotliwosc = (ramka_danych[WIDMO_CZEST_MSB_Bp] << 8) | ramka_danych[WIDMO_CZEST_LSB_Bp];
-				unia_widmo.widmo = oblicz_FT(czestotliwosc,*liczba_probek,probki_pomiaru,*okres_timera);
+				unia_widmo_double.widmo = oblicz_FT(czestotliwosc,*liczba_probek,probki_pomiaru,*okres_timera);
+				NadajWidmo(unia_widmo_double.c,sizeof(double));
 			}
 			else
 			{
 				harmoniczna = ramka_danych[WIDMO_K_Bp]; // odczyt ktora harmoniczna mamy wyliczyc
 				unia_widmo.widmo = oblicz_DFT(harmoniczna,*liczba_probek,probki_pomiaru);
+				NadajWidmo(unia_widmo.c,sizeof(float));
 			}
-			NadajWidmo(unia_widmo.c,4);
 			break;
 		default :	break;
 	}
