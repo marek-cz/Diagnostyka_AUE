@@ -36,7 +36,7 @@ def funkcjaPrzycisku1():
     opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
     #print("Opcje pomiaru: ")
     for opcja in zmienneOpcji:
-        print(opcja, ": " ,zmienneOpcji[opcja].get(), " \n")
+        #print(opcja, ": " ,zmienneOpcji[opcja].get(), " \n")
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
     #print("Typ pomiaru: ", wyborTypuPomiaru.get() )
     #print("Port szeregowy: ", wyborPortuCOM.get() )
@@ -45,10 +45,12 @@ def funkcjaPrzycisku1():
     backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get())
     
 def zmianaCOM(*args): # function called when var changes
-    print(wyborPortuCOM.get())  # this is where you'd set another variable to var.get()
+    #print(wyborPortuCOM.get())  # this is where you'd set another variable to var.get()
+    xyz = 0 # nic
 
 def zmianaMetodyPomiaru(*args): # function called when var changes
-    print(wyborTypuPomiaru.get())  # this is where you'd set another variable to var.get()
+    #print(wyborTypuPomiaru.get())  # this is where you'd set another variable to var.get()
+    xyz = 0 # nic
     
 def WypiszPortyCOM():
     global portyCOM
@@ -83,7 +85,7 @@ menu1.add_cascade(label="Port Szeregowy", menu=COM_menu)
 wyborTypuPomiaru.trace('w',zmianaMetodyPomiaru) # funkcja callback wywolywana za kazdym razem gdy wyborPortuCOM sie zmieni
 Pomiar_menu = tk.Menu(menu1, tearoff=0)
 for typ_pomiaru in typyPomiaru:
-    print(typ_pomiaru)
+    #print(typ_pomiaru)
     Pomiar_menu.add_radiobutton(label = typ_pomiaru, value = typ_pomiaru, variable = wyborTypuPomiaru)
 wyborTypuPomiaru.set(typyPomiaru[0]) # domyslna wartosc
 menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
