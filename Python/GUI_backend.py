@@ -4,6 +4,7 @@ MODUL ZAWIERAJACY BACK-END DO GUI
 
 import serial
 import serial.tools.list_ports
+import numpy as np
 import funkcje
 #-------------------------------------------------------------------------------------------
 # stale
@@ -24,6 +25,7 @@ LICZBA_ZNAKOW_TERMINACJI = 4
 # opcje transmisji
 BAUDRATE = 9600
 TIMEOUT = None
+POMIAR_MULTISIN  = 1
 POMIAR_IMPULSOWY = 2
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
@@ -42,6 +44,13 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM):
     if (opcje_pomiaru["Pomiar"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(opoznienie)
         else : wyniki_pomiaru = PomiarOkres(opoznienie)
+    if (opcje_pomiaru["Widmo na MCU"]) :
+        if (typ_pomiaru == POMIAR_IMPULSOWY) :
+            WidmoSinc(typ_pomiaru)
+        elif (typ_pomiaru == POMIAR_MULTISIN) :
+            WidmoMultiSin(typ_pomiaru)
+        else :
+            WidmoSinus(typ_pomiaru)
     if (opcje_pomiaru["Wyrysuj dane"]) :
         ZamknijCOM(portCOM)
         funkcje.wyrysuj_okres(wyniki_pomiaru,PER_INT)
@@ -62,9 +71,6 @@ def Generacja(czestotliwosc,przebieg):
     PER = PER_INT
     przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
     przebieg = PRZEBIEGI[przebieg_string]
-
-    #print(przebieg,PER,liczba_probek)
-
     ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
@@ -77,28 +83,43 @@ def PomiarOkres(delay):
     dane = OdczytajPomiar()
     dane = dane.strip('$')
     dane = dane.split()
-    #dane.remove(TERMINATOR_STRING)
-    #print(dane)
     return dane
-    #if czy_rysowac :
-    #    funkcje.wyrysuj_okres(dane,PER_INT)
 #-------------------------------------------------------------------------------------------
 
 def PomiarImp(delay):
-    print("Pomiar Impulsowy")
     delay = int(delay)
     delay = delay // 10
     if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
-    print(ramka.encode())
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     dane = dane.strip('$')
     dane = dane.split()
-    #dane.remove(TERMINATOR_STRING)
-    #print(dane)
     return dane
-    #funkcje.wyrysuj_okres(dane,PER_INT)
+#-------------------------------------------------------------------------------------------
+def WidmoMCU(harmoniczna,typ_pomiaru):
+    ramka =  "W"+ chr(typ_pomiaru) + chr(harmoniczna)
+    NadajCOM(ramka)
+    dane = OdczytajPomiar()
+    dane = dane.strip('$')
+    dane = dane.split()
+    return dane
+#-------------------------------------------------------------------------------------------
+def WidmoMultiSin(typ_pomiaru):
+    for i in range (10):
+        x = WidmoMCU(i+1,typ_pomiaru)
+        widmo = funkcje.listUint2Float(x)
+        print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
+#-------------------------------------------------------------------------------------------
+def WidmoSinus(typ_pomiaru):
+    x = WidmoMCU(1,typ_pomiaru)
+    widmo = funkcje.listUint2Float(x)
+    print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
+#-------------------------------------------------------------------------------------------
+def WidmoSinc(typ_pomiaru):
+    x = WidmoMCU(1000,typ_pomiaru)
+    widmo = funkcje.listUint2Float(x)
+    print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
     if frq > max(F_MAX) : return -1 # blad!!!!
@@ -132,11 +153,11 @@ def zamienNaZnaki(przebieg,PER,liczba_probek):
 def NadajCOM(ramka):
     ramka = ramka + "$$$$"
     #print("długosc ramki ", len(ramka))
-    print("\n",ramka,"\n",ramka.encode(),"\n")
+    #print("\n",ramka,"\n",ramka.encode(),"\n")
     port_szeregowy.write(ramka.encode())
     dane = port_szeregowy.read(len(ramka))
     #print('\n\n\n')
-    print(dane)
+    #print(dane)
     #print('\n\n\n')
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
@@ -144,7 +165,7 @@ def OtworzCOM(portCOM):
     port_szeregowy = serial.Serial(port = portCOM,baudrate=BAUDRATE,parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout=TIMEOUT)
     if port_szeregowy.isOpen() :
-        print(port_szeregowy.name + ' Pomyslnie otwarty! \n')
+        #print(port_szeregowy.name + ' Pomyslnie otwarty! \n')
         return True
     else :
         return False
@@ -169,9 +190,10 @@ def ZamknijCOM(portCOM):
     try :
         port_szeregowy.close() # zamkniecie portu
     except :
-        print()
+        a = 5 # nic ;)
+        #print()
     port_szeregowy = 0
-    print("Zamkniecie portu ",portCOM)
+    #print("Zamkniecie portu ",portCOM)
 #-------------------------------------------------------------------------------------------
 def OdczytajPomiar():
     licznik_znakow_terminacji = 0
@@ -183,7 +205,7 @@ def OdczytajPomiar():
             licznik_znakow_terminacji = licznik_znakow_terminacji + 1
             if licznik_znakow_terminacji == LICZBA_ZNAKOW_TERMINACJI : #odebrano wszystkie dane
                 dane_string = ""
-                print("Liczba odebranych Bajtow: ",len(dane))
+                #print("Liczba odebranych Bajtow: ",len(dane))
                 for bajt in dane:
                     dane_string += bajt.decode()
                 return dane_string
