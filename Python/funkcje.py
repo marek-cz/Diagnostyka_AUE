@@ -1,6 +1,7 @@
 """MODUL Z FUNKCJAMI"""
 import numpy as np
 import matplotlib.pyplot as plt
+import struct
 
 def wyrysuj_okres(dane,PER):        
     F_CPU = 32000000 # 32 MHz - czestotliwosc taktowania rdzenia
@@ -51,7 +52,10 @@ def wyrysuj(dane):
     plt.plot(dane)
     plt.show()
     
-def DaneStr2Lista(dane_string):
-    print("kupa")
 #-------------------------------------------------------------------------------------------
-    
+
+def listUint2Float(lista_uint):
+    y = []
+    for wartosc in lista_uint :
+        y.append( int(wartosc) )
+    return struct.unpack('<f', struct.pack('4b', *y))[0]
