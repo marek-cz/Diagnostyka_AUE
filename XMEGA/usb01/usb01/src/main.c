@@ -95,7 +95,6 @@ int main (void)
 	 //				PETLA GLOWNA 
 	 while(1)
 	 {
-		  unsigned long int y_int = 0;
 		  char ch;
 		  if (udi_cdc_is_rx_ready()) 
 		  {
@@ -310,37 +309,6 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE KONWERSJI
 
-char cyfraNaZnak(uint8_t cyfra)
-{
-	switch (cyfra)
-	{
-		case 0 : return '0';
-		case 1 : return '1';
-		case 2 : return '2';
-		case 3 : return '3';
-		case 4 : return '4';
-		case 5 : return '5';
-		case 6 : return '6';
-		case 7 : return '7';
-		case 8 : return '8';
-		case 9 : return '9';
-		default: return '0';
-	}
-}
-
-void liczbaNaZnaki(uint16_t probka, char * bufor)
-{
-	uint8_t liczba_jednosci   = probka % 10;
-	uint8_t liczba_dziesiatek = (probka/10) % 10;
-	uint8_t liczba_setek      = (probka/100) % 10;
-	uint8_t liczba_tysiecy    = (probka/1000) % 10;
-	
-	bufor[0] = cyfraNaZnak(liczba_jednosci);
-	bufor[1] = cyfraNaZnak(liczba_dziesiatek);
-	bufor[2] = cyfraNaZnak(liczba_setek);
-	bufor[3] = cyfraNaZnak(liczba_tysiecy);
-}
-
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek)
 {
 	for(int i = 0; i < liczbaProbek ;i++)
@@ -359,6 +327,16 @@ void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek)
 	udi_cdc_write_buf(STRING_TERMINACJI,STRING_TERMINACJI_LEN);
 }
 
+void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
+{
+	for(uint8_t i = 0; i < liczbaElementow ;i++)
+	{
+		printf("%d",tablicaFloatToChar[i]);
+		udi_cdc_write_buf(" ",1);
+	}
+	udi_cdc_write_buf("\n\r\n\r",4);
+	udi_cdc_write_buf(STRING_TERMINACJI,STRING_TERMINACJI_LEN);
+}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POZOSTALE
 
@@ -383,11 +361,11 @@ void WlaczPeryferia(void)
 	PR.PRPC  &= ~(PRPC_TC0);
 }
 
-double oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
+float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 {
-	double Re_DFT    = 0;
-	double Im_DFT    = 0;
-	double Modul_DFT = 0;
+	float Re_DFT    = 0;
+	float Im_DFT    = 0;
+	float Modul_DFT = 0;
 	int n;
 
 	for(n = 0;n<N;n++) // n -> DFT probka czasu
@@ -396,10 +374,34 @@ double oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 		Im_DFT += (sygnal[n] * sin( (2 * M_PI * k * n)/N))/N;
 	}
 
-	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // z normalizacja
+	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // z normalizacja -> do 1 V
 	//Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
 	return Modul_DFT;
 
+}
+
+float oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera )
+{
+	float w = 2 * M_PI * (float)f; // pulsacja
+	float T =  ((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
+	float ReU    = 0.0;
+	float ImU    = 0.0;
+	float ModulU = 0.0;
+	float tn = 0.0;
+	float tn_p1;;
+	float a; // wspolczynnik kierunkowy
+	
+	for (uint16_t i = 0; i < (N-1);i++)
+	{
+		tn_p1 = tn+T;
+		a = ( (float)(sygnal[i+1] - sygnal[i]) ) / (T);
+		ReU += (( ( sygnal[i+1] * sin(w*tn_p1) ) - (sygnal[i] * sin(w*tn) ) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
+		ImU -= (( ( sygnal[i+1] * cos(w*tn_p1) ) - (sygnal[i] * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
+		tn = tn_p1;
+	}
+	
+	ModulU = sqrt(ReU*ReU + ImU*ImU) / ADC_MAX_F; // z normalizacja -> do 1 V
+	return ModulU;
 }
 //--------------------------------------------------------------------------------------------------
 //				FUNKCJE TAKTOWANIA -> Tomasz Francuz
@@ -423,6 +425,14 @@ void SelectPLL(OSC_PLLSRC_t src, uint8_t mult)
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[])
 {
 	uint8_t flagi_pomiaru;
+	uint8_t harmoniczna;
+	uint8_t typ_transformaty;
+	uint16_t czestotliwosc;
+	union
+	{
+		float widmo;
+		char c[4]; // float ma dlugosc 32 bitow 32/8 = 4
+	} unia_widmo;
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
 		case 'G' :	// Generacja
@@ -452,6 +462,21 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			{
 				PomiarOkresowyADC(*liczba_probek,ramka_danych[POM_DELAY_Bp]);	
 			}
+			break;
+		case 'W' : // Widmo
+			typ_transformaty = ramka_danych[WIDMO_TYP_Bp]; // Transformata Fouriera czy DFT
+			if (WIDMO_TF == typ_transformaty)
+			{
+				// TRANSFORMATA FOURIERA
+				czestotliwosc = (ramka_danych[WIDMO_CZEST_MSB_Bp] << 8) | ramka_danych[WIDMO_CZEST_LSB_Bp];
+				unia_widmo.widmo = oblicz_FT(czestotliwosc,*liczba_probek,probki_pomiaru,*okres_timera);
+			}
+			else
+			{
+				harmoniczna = ramka_danych[WIDMO_K_Bp]; // odczyt ktora harmoniczna mamy wyliczyc
+				unia_widmo.widmo = oblicz_DFT(harmoniczna,*liczba_probek,probki_pomiaru);
+			}
+			NadajWidmo(unia_widmo.c,4);
 			break;
 		default :	break;
 	}

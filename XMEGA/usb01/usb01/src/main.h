@@ -61,6 +61,12 @@
 #define GEN_LICZB_PROBEK_Bp			4
 #define POM_FLAGI_Bp				1
 #define POM_DELAY_Bp				2
+#define WIDMO_K_Bp					2
+#define WIDMO_TYP_Bp				1
+#define WIDMO_CZEST_MSB_Bp			2
+#define WIDMO_CZEST_LSB_Bp			3
+#define WIDMO_DFT					0
+#define WIDMO_TF					'I'
 #define ZNAK_TERMINACJI				'$'
 #define STRING_TERMINACJI			"$$$$"
 #define STRING_TERMINACJI_LEN		4
@@ -99,12 +105,12 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie);					
 //----------------------------------------------------
 //				FUNKCJE KONWERSJI
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
-void liczbaNaZnaki(uint16_t probka, char * bufor);
-char cyfraNaZnak(uint8_t cyfra);
+void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
 //----------------------------------------------------
 //				FUNKCJE POZOSTALE
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
 void WlaczPeryferia(void);
-double oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
+float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
+float oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera );
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
 #endif /* MAIN_H_ */
