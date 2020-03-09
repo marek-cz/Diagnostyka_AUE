@@ -15,7 +15,7 @@ okno.resizable(False, False)
 portyCOM = [] # LISTA ZAWIERAJACA PORTY COM
 wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru COM
 wyborTypuPomiaru = tk.StringVar()
-typyPomiaru = ["Sinus","Pila","Wieloharmoniczny","Impulsowy"]
+typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
 czestotliwosc = 1000
 opoznienie_ms = 10
 opcje = ["Generacja","Pomiar","Wyrysuj dane","Widmo na MCU","Diagnozuj"]
@@ -30,16 +30,16 @@ def funkcjaPrzycisku1():
     global czestotliwosc
     global opoznienie_ms
     opcje = {} # slownik na opcje do wyslania do analizy-> bez koniecznosci tk
-    print("Czestotliwosc [Hz]: ",entry_field_czestotliwosc.get())
+    #print("Czestotliwosc [Hz]: ",entry_field_czestotliwosc.get())
     czestotliwosc = int(entry_field_czestotliwosc.get() )# pobranie wartosci czestotliwosci
-    print("Opoznienie [ms]: ",entry_field_opoznienie.get())
+    #print("Opoznienie [ms]: ",entry_field_opoznienie.get())
     opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
-    print("Opcje pomiaru: ")
+    #print("Opcje pomiaru: ")
     for opcja in zmienneOpcji:
         print(opcja, ": " ,zmienneOpcji[opcja].get(), " \n")
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
-    print("Typ pomiaru: ", wyborTypuPomiaru.get() )
-    print("Port szeregowy: ", wyborPortuCOM.get() )
+    #print("Typ pomiaru: ", wyborTypuPomiaru.get() )
+    #print("Port szeregowy: ", wyborPortuCOM.get() )
 
     
     backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get())
