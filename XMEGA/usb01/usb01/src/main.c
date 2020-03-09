@@ -218,8 +218,8 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 		break;
 		case SINUS_100_NR :	memcpy_P(probki_sygnalu,sinus_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
-		case PILA_1000_NR :		memcpy_P(probki_sygnalu,pila_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;
+		/*case PILA_1000_NR :		memcpy_P(probki_sygnalu,pila_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		break;*/
 		case MULTI_SIN_1000_NR : memcpy_P(probki_sygnalu,multi_sin_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case MULTI_SIN_250_NR : memcpy_P(probki_sygnalu,multi_sin_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
