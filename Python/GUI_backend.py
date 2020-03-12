@@ -10,23 +10,24 @@ import funkcje
 # stale
 F_CPU = 32000000# 32 MHz
 POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
-LICZBY_PROBEK = [1000,250,100]
-F_MAX = [1000,4000,10000]
+LICZBY_PROBEK = [500,250,100]
+F_MAX = [2000,4000,10000]
 LICZBA_PROBEK_f_MAX = [(1000,1000),(250,4000),(100,10000)]
-PRZEBIEGI = {"SINUS_1000_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
-             "PILA_1000_NR":3,"MULTI_SIN_1000_NR" : 4, "MULTI_SIN_250_NR" : 5,
-             "MULTI_SIN_100_NR" : 6, "SINC_1000_NR" : 7,"SINC_250_NR" : 8,
+PRZEBIEGI = {"SINUS_500_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
+             "PILA_1000_NR":3,"MULTI_SIN_500_NR" : 4, "MULTI_SIN_250_NR" : 5,
+             "MULTI_SIN_100_NR" : 6, "SINC_500_NR" : 7,"SINC_250_NR" : 8,
              "SINC_100_NR" : 9}
 KSZTALTY = ["SINUS","MULTI_SIN","SINC"]
-KONCOWKA_LICZBA_PROBEK = ["_1000_NR","_250_NR","_100_NR"]
+KONCOWKA_LICZBA_PROBEK = ["_500_NR","_250_NR","_100_NR"]
 TERMINATOR = b'\x24'
 TERMINATOR_STRING = '$$$$'
 LICZBA_ZNAKOW_TERMINACJI = 4
 # opcje transmisji
-BAUDRATE = 9600
+BAUDRATE = 115200
 TIMEOUT = None
 POMIAR_MULTISIN  = 1
 POMIAR_IMPULSOWY = 2
+PER_MIN = 31
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
@@ -76,8 +77,8 @@ def Generacja(czestotliwosc,przebieg):
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
     delay = int(delay)
-    delay = delay // 10
-    if delay > 255 : delay = 255
+    #delay = delay // 10
+    #if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
@@ -88,8 +89,8 @@ def PomiarOkres(delay):
 
 def PomiarImp(delay):
     delay = int(delay)
-    delay = delay // 10
-    if delay > 255 : delay = 255
+    #delay = delay // 10
+    #if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
@@ -117,7 +118,7 @@ def WidmoSinus(typ_pomiaru):
     print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
 def WidmoSinc(typ_pomiaru):
-    x = WidmoMCU(1000,typ_pomiaru)
+    x = WidmoMCU(1,typ_pomiaru)
     widmo = funkcje.listUint2Float(x)
     print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
@@ -127,9 +128,10 @@ def DobierzPER(frq):
         delta_f = f_max - frq
         indeks = F_MAX.index(f_max)
         if delta_f >=0 : break
-
+    print("Czestotliwosc: ",F_MAX[indeks])
     PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
-
+    if PER < PER_MIN : PER = PER_MIN
+    print("Okres: ",PER)
     return PER,indeks
 #-------------------------------------------------------------------------------------------
 def PER_na_2_znaki(PER):
