@@ -64,8 +64,7 @@
 #define POM_DELAY_Bp				2
 #define WIDMO_K_Bp					2
 #define WIDMO_TYP_Bp				1
-#define WIDMO_CZEST_MSB_Bp			2
-#define WIDMO_CZEST_LSB_Bp			3
+#define WIDMO_SINC_CZEST_Bp			2
 #define WIDMO_DFT					0
 #define WIDMO_TF					2
 #define ZNAK_TERMINACJI				'$'
@@ -114,6 +113,6 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
 void WlaczPeryferia(void);
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
-float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint16_t f);
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f);
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
 #endif /* MAIN_H_ */

@@ -87,7 +87,7 @@ int main (void)
 	 //----------------------------------------------------
 	 //				ZMIENNE LOKALNE
 	 uint16_t okres_timera = 31;
-	 uint16_t liczba_probek = 1000;
+	 uint16_t liczba_probek = 500;
 	 uint8_t  przebieg = SINUS_500_NR;
 	 unsigned char ramka_danych_USB[ROZMIAR_RAMKI_USB_MAX];
 	 uint8_t licznik_znakow = 0;
@@ -388,10 +388,10 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 
 }
 
-float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint16_t f)
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f)
 {
 	float w = 2 * M_PI * (float)f; // pulsacja
-	float T =  0.001; //((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
+	float T =  0.002; //((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
 	float ReU    = 0.0;
 	float ImU    = 0.0;
 	float ModulU = 0.0;
@@ -402,16 +402,17 @@ float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint16_t f)
 
 	for (i = 0; i < (liczba_elementow-1);i++)
 	{
-		tn = (float)((i) / 1000.0);
-		tn_p1 =(float)((i + 1) / 1000.0);
-		a = ( (float)(sygnal[i+1] - sygnal[i]) ) / (T);
-		ReU += (( ( sygnal[i+1] * sin(w*tn_p1) ) - (sygnal[i] * sin(w*tn) ) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
-		ImU -= (( ( sygnal[i+1] * cos(w*tn_p1) ) - (sygnal[i] * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
+		tn = (float)((i)) * T;
+		tn_p1 =(float)((i + 1))  * T;
+		a = ( (float)(sygnal[i+1]) - (float)(sygnal[i]) ) / (T);
+		ReU += (( ( (float)(sygnal[i+1]) * sin(w*tn_p1) ) - ( (float)(sygnal[i]) * sin(w*tn) ) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
+		ImU -= (( ( (float)(sygnal[i+1]) * cos(w*tn_p1) ) - ( (float)(sygnal[i]) * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
 	}
 
 	ModulU = sqrt(ReU*ReU + ImU*ImU) / ADC_MAX_F; // z normalizacja -> do 1 V
 	return ModulU;
 }
+
 //--------------------------------------------------------------------------------------------------
 //				FUNKCJE TAKTOWANIA -> Tomasz Francuz
 bool OSC_wait_for_rdy(uint8_t clk)
@@ -436,18 +437,18 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 	uint8_t flagi_pomiaru;
 	uint8_t harmoniczna;
 	uint8_t typ_transformaty;
-	uint16_t czestotliwosc;
+	uint8_t czestotliwosc;
 	union
 	{
 		float widmo;
 		char c[sizeof(float)]; // float ma dlugosc 32 bitow 32/8 = 4
 	} unia_widmo;
 	
-	union
+	/*union
 	{
 		double widmo;
 		char c[sizeof(double)];	
-	}unia_widmo_double;
+	}unia_widmo_double;*/
 	
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
@@ -488,9 +489,9 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			if (WIDMO_TF == typ_transformaty)
 			{
 				// TRANSFORMATA FOURIERA
-				czestotliwosc = (ramka_danych[WIDMO_CZEST_MSB_Bp] << 8) | ramka_danych[WIDMO_CZEST_LSB_Bp];
-				unia_widmo_double.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
-				NadajWidmo(unia_widmo_double.c,sizeof(double));
+				czestotliwosc = ramka_danych[WIDMO_SINC_CZEST_Bp];
+				unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
+				NadajWidmo(unia_widmo.c,sizeof(float));
 			}
 			else
 			{
