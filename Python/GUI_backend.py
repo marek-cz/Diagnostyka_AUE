@@ -118,9 +118,10 @@ def WidmoSinus(typ_pomiaru):
     print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
 def WidmoSinc(typ_pomiaru):
-    x = WidmoMCU(1,typ_pomiaru)
-    widmo = funkcje.listUint2Float(x)
-    print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
+    for i in range (10):
+        x = WidmoMCU(i+1,typ_pomiaru)
+        widmo = funkcje.listUint2Float(x)
+        print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
     if frq > max(F_MAX) : return -1 # blad!!!!
