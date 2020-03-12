@@ -32,16 +32,17 @@
 #define KONIEC_ZBIERANIA_PROBEK (1<<0)
 #define ODBIOR_KOMENDY			(1<<1)
 #define ODBIOR_ZNAKU			(1<<2)
+#define OKRES_TIMERA_MIN			31
 
 //			MAKRA OPISUJACE NUMERY PRZEBIEGOW
-#define SINUS_1000_NR			0
+#define SINUS_500_NR			0
 #define SINUS_250_NR			1
 #define SINUS_100_NR			2
 #define PILA_1000_NR			3
-#define MULTI_SIN_1000_NR		4
+#define MULTI_SIN_500_NR		4
 #define MULTI_SIN_250_NR		5
 #define MULTI_SIN_100_NR		6
-#define SINC_1000_NR			7
+#define SINC_500_NR			7
 #define SINC_250_NR				8
 #define SINC_100_NR				9
 
@@ -72,7 +73,7 @@
 #define STRING_TERMINACJI_LEN		4
 #define LICZBA_ZNAKOW_TERMINACJI	4
 //_____________________________________________________
-#define LICZBA_PROBEK_1000	0
+#define LICZBA_PROBEK_500	0
 #define LICZBA_PROBEK_250	1
 #define LICZBA_PROBEK_100	2
 //_____________________________________________________
@@ -113,6 +114,6 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
 void WlaczPeryferia(void);
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
-double oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera );
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint16_t f);
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
 #endif /* MAIN_H_ */

@@ -88,7 +88,7 @@ int main (void)
 	 //				ZMIENNE LOKALNE
 	 uint16_t okres_timera = 31;
 	 uint16_t liczba_probek = 1000;
-	 uint8_t  przebieg = SINUS_1000_NR;
+	 uint8_t  przebieg = SINUS_500_NR;
 	 unsigned char ramka_danych_USB[ROZMIAR_RAMKI_USB_MAX];
 	 uint8_t licznik_znakow = 0;
 	 uint8_t licznik_terminacji = 0;
@@ -213,7 +213,7 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 	// funkcja wczytujaca wybrany przebieg z pamieci FLASH do TABLICY GLOBALNEJ probki_sygnalu
 	switch(przebieg)
 	{
-		case SINUS_1000_NR :	memcpy_P(probki_sygnalu,sinus_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		case SINUS_500_NR :	memcpy_P(probki_sygnalu,sinus_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case SINUS_250_NR :	memcpy_P(probki_sygnalu,sinus_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
@@ -221,13 +221,13 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 		break;
 		/*case PILA_1000_NR :		memcpy_P(probki_sygnalu,pila_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;*/
-		case MULTI_SIN_1000_NR : memcpy_P(probki_sygnalu,multi_sin_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		case MULTI_SIN_500_NR : memcpy_P(probki_sygnalu,multi_sin_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case MULTI_SIN_250_NR : memcpy_P(probki_sygnalu,multi_sin_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case MULTI_SIN_100_NR : memcpy_P(probki_sygnalu,multi_sin_wave_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
-		case SINC_1000_NR :		memcpy_P(probki_sygnalu,sinc_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		case SINC_500_NR :		memcpy_P(probki_sygnalu,sinc_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case SINC_250_NR :		memcpy_P(probki_sygnalu,sinc_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
@@ -243,7 +243,7 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 			case SQR_1000_NR :		memcpy_P(probki_sygnalu,sqr_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 			break;
 		#endif
-		default :				memcpy_P(probki_sygnalu,multi_sin_wave_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
+		default :				memcpy_P(probki_sygnalu,multi_sin_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 	}
 }
@@ -264,8 +264,8 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
 	switch(liczba_probek)
 	{
-		case 1000 :
-		WyborPrzebiegu(SINC_1000_NR,liczba_probek);
+		case 500 :
+		WyborPrzebiegu(SINC_500_NR,liczba_probek);
 		break;
 		case 250 :
 		WyborPrzebiegu(SINC_250_NR,liczba_probek);
@@ -388,26 +388,27 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 
 }
 
-double oblicz_FT(uint16_t f , uint16_t N, const uint16_t sygnal[], uint16_t okres_timera )
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint16_t f)
 {
 	float w = 2 * M_PI * (float)f; // pulsacja
-	float T =  ((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
-	double ReU    = 0.0;
-	double ImU    = 0.0;
-	double ModulU = 0.0;
+	float T =  0.001; //((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
+	float ReU    = 0.0;
+	float ImU    = 0.0;
+	float ModulU = 0.0;
 	float tn = 0.0;
-	float tn_p1;;
-	float a; // wspolczynnik kierunkowy
-	
-	for (uint16_t i = 0; i < (N-1);i++)
+	float tn_p1 = T;
+	float a = 0; // wspolczynnik kierunkowy
+	uint16_t i ;
+
+	for (i = 0; i < (liczba_elementow-1);i++)
 	{
-		tn_p1 = tn+T;
+		tn = (float)((i) / 1000.0);
+		tn_p1 =(float)((i + 1) / 1000.0);
 		a = ( (float)(sygnal[i+1] - sygnal[i]) ) / (T);
 		ReU += (( ( sygnal[i+1] * sin(w*tn_p1) ) - (sygnal[i] * sin(w*tn) ) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
 		ImU -= (( ( sygnal[i+1] * cos(w*tn_p1) ) - (sygnal[i] * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
-		tn = tn_p1;
 	}
-	
+
 	ModulU = sqrt(ReU*ReU + ImU*ImU) / ADC_MAX_F; // z normalizacja -> do 1 V
 	return ModulU;
 }
@@ -453,16 +454,20 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 		case 'G' :	// Generacja
 			*przebieg = ramka_danych[GEN_PRZEBIEG_Bp];
 			*okres_timera = (ramka_danych[GEN_PER_MSB_Bp] << 8) | ramka_danych[GEN_PER_LSB_Bp];
+			if (*okres_timera < OKRES_TIMERA_MIN) // zabezpieczenie!
+			{
+				*okres_timera = OKRES_TIMERA_MIN;
+			}
 			*liczba_probek = ramka_danych[GEN_LICZB_PROBEK_Bp];
 			switch(*liczba_probek)
 			{
-				case LICZBA_PROBEK_1000 :	*liczba_probek = 1000;
+				case LICZBA_PROBEK_500 :	*liczba_probek = 500;
 											break;
 				case LICZBA_PROBEK_250  :	*liczba_probek = 250;
 											break;
 				case LICZBA_PROBEK_100  :	*liczba_probek = 100;
 											break;
-				default :					*liczba_probek = 1000;
+				default :					*liczba_probek = 500;
 											break;
 			}
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
@@ -484,7 +489,7 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			{
 				// TRANSFORMATA FOURIERA
 				czestotliwosc = (ramka_danych[WIDMO_CZEST_MSB_Bp] << 8) | ramka_danych[WIDMO_CZEST_LSB_Bp];
-				unia_widmo_double.widmo = oblicz_FT(czestotliwosc,*liczba_probek,probki_pomiaru,*okres_timera);
+				unia_widmo_double.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
 				NadajWidmo(unia_widmo_double.c,sizeof(double));
 			}
 			else
