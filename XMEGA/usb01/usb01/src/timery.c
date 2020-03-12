@@ -13,7 +13,7 @@ void TCC1_Init(uint16_t per)
 	TCC1.INTCTRLA = TC_OVFINTLVL_MED_gc;				// przepe³nienie TCC1 ma generowaæ przerwanie MED -> priorytety przerwan
 	TCC1.CTRLB	  = TC_WGMODE_NORMAL_gc;				// tryb normalny
 	TCC1.PER	  =	per;								// LICZ MODULO per - przepelnienie co per+1
-	TCC1_CTRLA    = TC_CLKSEL_DIV1024_gc;				// w³aczenie timera
+	TCC1_CTRLA    = TC_CLKSEL_DIV256_gc;				// w³aczenie timera
 }
 
 void TCC0_Init(uint16_t per)
