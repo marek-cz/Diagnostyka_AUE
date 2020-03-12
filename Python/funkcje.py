@@ -59,3 +59,5 @@ def listUint2Float(lista_uint):
     for wartosc in lista_uint :
         y.append( int(wartosc) )
     return struct.unpack('<f', struct.pack('4b', *y))[0]
+
+
