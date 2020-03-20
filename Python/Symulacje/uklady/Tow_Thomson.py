@@ -47,6 +47,6 @@ LICZBA_PUNKTOW = 12
 epsilon = 0.01
 #------------------------------------------------------------------------------------
 # 5. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
-LICZBA_LOSOWAN_MC = 20
+LICZBA_LOSOWAN_MC = 500
 # 6. PCA - PROG WARIANCJI - DO OKRESLENIA LICZBY SKLADOWYCH GLOWNYCH -  W PROCENTACH!
 PCA_PROG = 99 # [%]
