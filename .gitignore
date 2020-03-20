@@ -10,3 +10,5 @@
 *.cproj
 *.atsln
 **/Python/__pycache__/
+**/Python/Symulacje/__pycache__/
+**/Python/Symulacje/uklad.py
