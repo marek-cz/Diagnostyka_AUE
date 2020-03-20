@@ -58,6 +58,36 @@ def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     return modul
 
 #------------------------------------------------------------------------------
+def monteCarlo(elementy,czestotliwosci,tolerancja,liczba_losowanMC):
+    """
+    DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
+    WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
+    ZWRACA MACIERZ W KTOREJ KAZDY WIERSZ JEST PUNKTEM POMIAROWYM,
+    WIERSZ 0 TO PUNKT NMOMINALNY
+    """
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    czestotliwosci = np.asarray(czestotliwosci)
+    liczba_czestotliwosci = czestotliwosci.shape[0]
+    L = 1 - tolerancja
+    H = 1 + tolerancja
+    
+    liczba_wierszy = liczba_losowanMC + 1 # tyle punktow pomiarowych ile jest losowan. +1 bo wiersz 0 to punkt nominalny
+    liczba_kolumn = liczba_czestotliwosci
+    
+    klaster = np.zeros( ( liczba_wierszy , liczba_kolumn ) )
+    l, m = uklad.transmitancja(elementy)
+    klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+    #################################################################################
+    #           LOSOWANIE MONTECARLO
+    #################################################################################
+    licznik = 1
+    for i in range(liczba_losowanMC): # MonteCarlo
+        for element in elementy_modyfikacje: # tolerancje
+            elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
+        l, m = uklad.transmitancja(elementy_modyfikacje)
+        klaster[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+        licznik = licznik +  1
+    return klaster
 #------------------------------------------------------------------------------
 def slownikUszkodzen(elementy, badane_czestotliwosci,liczba_punktow_na_element):
     elementy_modyfikacje = copy.deepcopy( elementy )
@@ -317,8 +347,8 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci):
     i = 0
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' :
-            continue
-            #ax.plot(slownik_uszkodzen[uszkodzenie][0],slownik_uszkodzen[uszkodzenie][1],slownik_uszkodzen[uszkodzenie][2],'o-', label = uszkodzenie)
+            #continue
+            ax.plot(slownik_uszkodzen[uszkodzenie][:1],slownik_uszkodzen[uszkodzenie][1:2],slownik_uszkodzen[uszkodzenie][-1:],'o-', label = uszkodzenie)
         else :
             liczba_punktow = len( slownik_uszkodzen[uszkodzenie] )
             liczba_czestotliwosci = len( badane_czestotliwosci )
