@@ -152,7 +152,8 @@ void Init(void)
 	sei();	// globalne odblokowanie przerwan
 	DMA_init();
 	DAC_init();
-	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc);
+	//ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc); // 256A3Bu
+	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
 	TCC0_Init(31); // Timer taktujacy DAC i ADC
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 }
