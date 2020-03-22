@@ -39,6 +39,16 @@ import uklad
 plt.rc('axes', labelsize = 14)
 plt.rc('xtick', labelsize=12)
 plt.rc('ytick', labelsize=12)
+
+KOLORY_nazwy = ['gray','saddlebrown','darkred','red','oragnered','orange','gold','darkkhaki','olive','darkolivegreen',
+          'lawngreen','lime','seagreen','cyan','teal','blue','indigo','violet','purple','magenta','crimson']
+
+indeksy = np.arange(len(KOLORY_nazwy))
+np.random.shuffle(indeksy)
+KOLORY = []
+for indeks in indeksy:
+    KOLORY.append(KOLORY_nazwy[indeks])
+
 #------------------------------------------------------------------------------
 def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     f = np.asarray(f)
@@ -58,7 +68,7 @@ def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     return modul
 
 #------------------------------------------------------------------------------
-def monteCarlo(elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC,element_wykluczony_z_losowania = 'Brak'):
+def monteCarlo(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
     """
     DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
     WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
@@ -83,8 +93,8 @@ def monteCarlo(elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLI
     licznik = 1
     for i in range(liczba_losowanMC): # MonteCarlo
         for element in elementy_modyfikacje: # tolerancje
-            if element == element_wykluczony_z_losowania :
-                #print("\n\n",element_wykluczony_z_losowania,"\n\n")
+            if element in elementy_wykluczone_z_losowania :
+                #print("\n\nTen element nie jest losowany: ",element,"\n\n")
                 elementy_modyfikacje[element] = elementy[element]
             else :
                 elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
@@ -94,26 +104,45 @@ def monteCarlo(elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLI
         licznik = licznik +  1
     return klaster
 #------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
-def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
-    elementy_modyfikacje = copy.deepcopy( elementy )
-    słownikUszkodzen = {}
+
+def generujWartosciElementowZnormalizowane(tolerancja,liczba_punktow_na_element):
+
     liczba_punktow_plus = liczba_punktow_minus = (liczba_punktow_na_element//2) + 1
     tolerancja = tolerancja * 100 # procenty!
     delta_minus = (100 - tolerancja -50) / liczba_punktow_minus
     delta_plus = (150 - (100 + tolerancja)) / liczba_punktow_plus
+    
+    wartosci_elementu_znormalizowane_minus = np.arange(50,100 - tolerancja + delta_minus ,delta_minus)
+    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_minus.shape[0]-1)
+    if wartosci_elementu_znormalizowane_minus[indeks_ostatniego_elementu] > (100 - tolerancja) :
+        wartosci_elementu_znormalizowane_minus = np.delete(wartosci_elementu_znormalizowane_minus,indeks_ostatniego_elementu)
+    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_minus.shape[0]-1)
+    if ((100 - tolerancja) - wartosci_elementu_znormalizowane_minus[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
+        wartosci_elementu_znormalizowane_minus = np.concatenate( (wartosci_elementu_znormalizowane_minus,np.array([100 - tolerancja])) )
+##################################################################################################################################################################
+    wartosci_elementu_znormalizowane_plus = np.arange(100 + tolerancja, 150 + delta_plus ,delta_plus)
+    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_plus.shape[0]-1)
+    
+    if wartosci_elementu_znormalizowane_plus[indeks_ostatniego_elementu] > (150) :
+        wartosci_elementu_znormalizowane_plus = np.delete(wartosci_elementu_znormalizowane_plus, indeks_ostatniego_elementu)
+    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_plus.shape[0]-1)
+    if (150 - wartosci_elementu_znormalizowane_plus[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
+        wartosci_elementu_znormalizowane_plus = np.concatenate( (wartosci_elementu_znormalizowane_plus,np.array([150])) )
 
+    return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
+
+#------------------------------------------------------------------------------
+def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    słownikUszkodzen = {}
+
+    wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(tolerancja,liczba_punktow_na_element)
+    
     for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
         i = 0
-        wartosci_elementu_znormalizowane = np.arange(50,100 - tolerancja + delta_minus ,delta_minus)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if wartosci_elementu_znormalizowane[indeks_ostatniego_elementu] > (100 - tolerancja) :
-            wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,indeks_ostatniego_elementu)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if ((100 - tolerancja) - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-            wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([100 - tolerancja])) )
-        lista = np.zeros((wartosci_elementu_znormalizowane.shape[0],len(badane_czestotliwosci)))
-        for wartosc in wartosci_elementu_znormalizowane:
+        
+        lista = np.zeros((wartosci_minus.shape[0],len(badane_czestotliwosci)))
+        for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
@@ -125,14 +154,8 @@ def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BA
 
     for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
         i = 0
-        wartosci_elementu_znormalizowane = np.arange(100 + tolerancja, 150 + delta_plus ,delta_plus)
-        if wartosci_elementu_znormalizowane[wartosci_elementu_znormalizowane.shape[0]-1] > (150) :
-            wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,wartosci_elementu_znormalizowane.shape[0] - 1)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if (150 - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-            wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([150])) )
-        lista = np.zeros((wartosci_elementu_znormalizowane.shape[0],len(badane_czestotliwosci)))
-        for wartosc in wartosci_elementu_znormalizowane:
+        lista = np.zeros((wartosci_plus.shape[0],len(badane_czestotliwosci)))
+        for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
@@ -151,57 +174,57 @@ def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BA
     return s
 
 #------------------------------------------------------------------------------
-def slownikUszkodzenMonteCarlo(elementy, badane_czestotliwosci,liczba_punktow_na_element,tolerancja,liczba_losowanMC): # elementy slownika sa macierzami numPy
+def slownikUszkodzenMonteCarlo(elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
+    #elementy_modyfikacje = copy.deepcopy( elementy )
+    #słownikUszkodzen = {}
+    #liczba_punktow_plus = liczba_punktow_minus = (liczba_punktow_na_element//2) + 1
+    #tolerancja = tolerancja * 100 # procenty!
+    #delta_minus = (100 - tolerancja -50) / liczba_punktow_minus
+    #delta_plus = (150 - (100 + tolerancja)) / liczba_punktow_plus
+
+    #for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
+        #i = 0
+    #    wartosci_elementu_znormalizowane = np.arange(50,100 - tolerancja + delta_minus ,delta_minus)
+    #    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
+    #    if wartosci_elementu_znormalizowane[indeks_ostatniego_elementu] > (100 - tolerancja) :
+    #        wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,indeks_ostatniego_elementu)
+    #    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
+    #    if ((100 - tolerancja) - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
+    #        wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([100 - tolerancja])) )
+    #    for wartosc in wartosci_elementu_znormalizowane:
+    #        elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+    #        klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
+    #    słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
+    #    elementy_modyfikacje = copy.deepcopy( elementy )
+
+    #for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
+    #    #i = 0
+    #    wartosci_elementu_znormalizowane = np.arange(100 + tolerancja, 150 + delta_plus ,delta_plus)
+    #    if wartosci_elementu_znormalizowane[wartosci_elementu_znormalizowane.shape[0]-1] > (150) :
+    #        wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,wartosci_elementu_znormalizowane.shape[0] - 1)
+    #    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
+    #    if (150 - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
+    #        wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([150])) )
+    #    for wartosc in wartosci_elementu_znormalizowane:
+    #        elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+    #        klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
+    #    słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
+    #    elementy_modyfikacje = copy.deepcopy( elementy )
+
+    #klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
+    #słownikUszkodzen.setdefault('Nominalne',klaster)
+
+    #return słownikUszkodzen
+
+    slownik_nominalny = slownikUszkodzen()
     elementy_modyfikacje = copy.deepcopy( elementy )
-    słownikUszkodzen = {}
-    liczba_punktow_plus = liczba_punktow_minus = (liczba_punktow_na_element//2) + 1
-    tolerancja = tolerancja * 100 # procenty!
-    delta_minus = (100 - tolerancja -50) / liczba_punktow_minus
-    delta_plus = (150 - (100 + tolerancja)) / liczba_punktow_plus
-
-    for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
-        #i = 0
-        wartosci_elementu_znormalizowane = np.arange(50,100 - tolerancja + delta_minus ,delta_minus)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if wartosci_elementu_znormalizowane[indeks_ostatniego_elementu] > (100 - tolerancja) :
-            wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,indeks_ostatniego_elementu)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if ((100 - tolerancja) - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-            wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([100 - tolerancja])) )
-        #lista = np.zeros((wartosci_elementu_znormalizowane.shape[0],len(badane_czestotliwosci)))
-        for wartosc in wartosci_elementu_znormalizowane:
-            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
-            #(licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            #wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            #lista[i] = wartosci
-            #i = i + 1
-        słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
-        elementy_modyfikacje = copy.deepcopy( elementy )
-
-    for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
-        #i = 0
-        wartosci_elementu_znormalizowane = np.arange(100 + tolerancja, 150 + delta_plus ,delta_plus)
-        if wartosci_elementu_znormalizowane[wartosci_elementu_znormalizowane.shape[0]-1] > (150) :
-            wartosci_elementu_znormalizowane = np.delete(wartosci_elementu_znormalizowane,wartosci_elementu_znormalizowane.shape[0] - 1)
-        indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane.shape[0]-1)
-        if (150 - wartosci_elementu_znormalizowane[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-            wartosci_elementu_znormalizowane = np.concatenate( (wartosci_elementu_znormalizowane,np.array([150])) )
-        #lista = np.zeros((wartosci_elementu_znormalizowane.shape[0],len(badane_czestotliwosci)))
-        for wartosc in wartosci_elementu_znormalizowane:
-            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
-            #(licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            #wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            #lista[i] = wartosci
-            #i = i + 1
-        słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
-        elementy_modyfikacje = copy.deepcopy( elementy )
-
-    klaster = monteCarlo(elementy_modyfikacje,badane_czestotliwosci,tolerancja,liczba_losowanMC,uszkodzony_element)
-    słownikUszkodzen.setdefault('Nominalne',klaster)
-
-    return słownikUszkodzen
+    
+    for sygnatura in slownik_nominalny:
+        elementy_do_wykluczenia_z_losowania = []
+        for element in elementy:
+            if ( sygnatura.find(element) != -1 ): # jezeli element jets w sygnaturze, to jego wartosc ma byc ustalona-nie losujemy w MC
+                elementy_do_wykluczenia_z_losowania.append(element)
+        monteCarlo(elementy_wykluczone_z_losowania = elementy_do_wykluczenia_z_losowania)
     
 #------------------------------------------------------------------------------
 
@@ -363,10 +386,10 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci = ukl
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' :
             #continue
-            A = monteCarlo(uklad.elementy,badane_czestotliwosci,uklad.TOLERANCJA,uklad.LICZBA_LOSOWAN_MC)
+            A = monteCarlo([],uklad.elementy,badane_czestotliwosci,uklad.TOLERANCJA,uklad.LICZBA_LOSOWAN_MC)
             A = np.transpose(A)
             ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
-            ax.plot(slownik_uszkodzen[uszkodzenie][:1],slownik_uszkodzen[uszkodzenie][1:2],slownik_uszkodzen[uszkodzenie][-1:],'o-', label = uszkodzenie)
+            ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = uszkodzenie)
         else :
             A = slownik_uszkodzen[uszkodzenie]
             A = np.transpose(A)
@@ -376,7 +399,33 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci = ukl
     ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
     ax.legend()
     plt.show()
+
+
+#------------------------------------------------------------------------------
+def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(slownik_uszkodzen,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
+    #plt.clf()
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    i = 0
+    for uszkodzenie in slownik_uszkodzen:
+        if uszkodzenie == 'Nominalne' :
+            #continue
+            A = monteCarlo([],elementy,badane_czestotliwosci,tolerancja,liczba_losowan)
+            A = np.transpose(A)
+            ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
+            ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = uszkodzenie)
+        else :
+            A = slownik_uszkodzen[uszkodzenie]
+            A = np.transpose(A)
+            ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
+        i = i + 1
+    ax.set_xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
+    ax.set_ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
+    ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
+    ax.legend()
+    plt.show()
     
+#------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
