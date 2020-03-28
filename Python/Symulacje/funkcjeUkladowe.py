@@ -191,39 +191,28 @@ def slownikUszkodzenMonteCarlo(elementy = uklad.elementy, badane_czestotliwosci 
     wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
     
     for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
-        i = 0
-        
-        lista = np.zeros((wartosci_minus.shape[0],len(badane_czestotliwosci)))
+        klaster = []
         for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            #print(elementy_modyfikacje)
-            (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            lista[i] = wartosci
-            i = i + 1
-        słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
+            klaster.append( monteCarlo(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje) )
+        słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
 
     for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
-        i = 0
-        lista = np.zeros((wartosci_plus.shape[0],len(badane_czestotliwosci)))
+        klaster = []
         for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            #print(elementy_modyfikacje)
-            (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            lista[i] = wartosci
-            i = i + 1
-        słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
+            klaster.append( monteCarlo(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje) )
+        słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
+        
 
-    (licznik, mianownik) = uklad.transmitancja(elementy)
-    wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-    słownikUszkodzen.setdefault('Nominalne',wartosci)
+    klaster = monteCarlo() # punkt nominalny -> obszar tolerancji
+    słownikUszkodzen.setdefault('Nominalne',klaster)
 
-    s = LaczenieSygnatur(słownikUszkodzen)
+    #s = LaczenieSygnatur(słownikUszkodzen)
 
-    return s
+    return słownikUszkodzen
     
 #------------------------------------------------------------------------------
 
@@ -403,27 +392,58 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci = ukl
 #------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(slownik_uszkodzen,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
     #plt.clf()
+
+    KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
+    KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
+
+    KOLORY_KRZYWE = {'R1' : 'k','R2' : 'y', 'R3' : 'c', 'C1' : 'r','C2':'g','C3' : 'b'}
+    KOLORY_KRZYWE_KLUCZE = KOLORY_KRZYWE.keys()
+    
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     i = 0
+    # obszary tolerancji
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' :
             #continue
-            A = monteCarlo([],elementy,badane_czestotliwosci,tolerancja,liczba_losowan)
+            A = monteCarlo([],uklad.elementy,badane_czestotliwosci,uklad.TOLERANCJA,uklad.LICZBA_LOSOWAN_MC)
             A = np.transpose(A)
             ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
-            ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = uszkodzenie)
         else :
             A = slownik_uszkodzen[uszkodzenie]
+            for klaster in A :
+                X = np.transpose(klaster)
+                kolor = 'b'
+                for klucz in KOLORY_OBSZAR_TOL_KLUCZE :
+                    if uszkodzenie.find(klucz) != -1 :
+                        kolor = KOLORY_OBSZAR_TOL[klucz]
+                        break
+                ax.plot(X[0],X[1],X[2],kolor+'o')
+
+    # Krzywe nominalne
+    for uszkodzenie in slownik_uszkodzen:
+        if uszkodzenie == 'Nominalne' :
+            #continue
+            A = monteCarlo([],uklad.elementy,badane_czestotliwosci,uklad.TOLERANCJA,uklad.LICZBA_LOSOWAN_MC)
             A = np.transpose(A)
-            ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
-        i = i + 1
+            ax.plot(A[0][:1],A[1][:1],A[2][:1],'o-', label = uszkodzenie)
+        else :
+            A = slownik_uszkodzen[uszkodzenie]
+            krzywa_nominalna = []
+            for klaster in A :
+                krzywa_nominalna.append(klaster[0])
+            krzywa_nominalna = np.transpose(krzywa_nominalna)
+            kolor = 'b'
+            for klucz in KOLORY_KRZYWE_KLUCZE :
+                if uszkodzenie.find(klucz) != -1 :
+                    kolor = KOLORY_KRZYWE[klucz]
+                    break
+            ax.plot(krzywa_nominalna[0],krzywa_nominalna[1],krzywa_nominalna[2],kolor+'o-', label = uszkodzenie)
     ax.set_xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
     ax.set_ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
     ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
     ax.legend()
     plt.show()
-    
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
 #                         PCA
