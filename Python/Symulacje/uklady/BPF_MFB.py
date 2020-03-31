@@ -10,7 +10,7 @@ import numpy as np
 #------------------------------------------------------------------------------
 def transmitancja(elementy):
     licznik_wyraz_wolny = 0
-    licznik_przy_s = (-1) / (elementy['R1']*elementy['C2'])
+    licznik_przy_s = (-1) / (elementy['R1'] * elementy['C2'])
     licznik_przy_s2 = 0
     mianownik_wyraz_wolny = ( elementy['R1'] + elementy['R2'] ) / (elementy['R1'] * elementy['R2'] * elementy['R3'] * elementy['C1'] * elementy['C2'])
     mianownik_przy_s = (elementy['C1'] + elementy['C2']) / ( elementy['R3'] *  elementy['C1'] * elementy['C2'])
@@ -25,16 +25,17 @@ k = 1e3
 u = 1e-6
 n = 1e-9
 
-R1 = 22 * k
+R1 = 47 * k
 R2 = 47 * k
 R3 = 100 * k
 
-C1 = 22 * n
+#C1 = 22 * n
+C1 = 47 * n
 C2 = 47 * n
 
 elementy = {'R1' : R1,'R2' : R2,'R3' : R3,'C1' : C1,'C2' : C2}
 
-TOLERANCJA = {'R' : 0.01, 'C' : 0.01}
+TOLERANCJA = {'R' : 0.01, 'C' : 0.02}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI

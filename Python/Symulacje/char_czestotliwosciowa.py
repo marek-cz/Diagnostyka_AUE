@@ -23,8 +23,15 @@ def wyrysujCharakterystyki(elementy,f):
     plt.clf()
     for i in range (10):
         for element in elementy :
-            a = 1 - uklad.TOLERANCJA
-            b = 1 + uklad.TOLERANCJA
+            if element.find('R') != -1 :
+                #element jest Rezystorem
+                a = 1 - uklad.TOLERANCJA['R']
+                b = 1 + uklad.TOLERANCJA['R']
+            elif element.find('C') != -1:
+                a = 1 - uklad.TOLERANCJA['C']
+                b = 1 + uklad.TOLERANCJA['C']
+            else :
+                print('kaszana!')
             elementy_modyfikacje[element] = elementy[element] * (random.uniform(a,b))
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
             h = funkcjeUkladowe.charCzestotliwosciowaModul(licznik, mianownik,f)
