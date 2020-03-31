@@ -72,7 +72,9 @@ def Generacja(czestotliwosc,przebieg):
     PER = PER_INT
     przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
     przebieg = PRZEBIEGI[przebieg_string]
+    print("Rejestr timera : ",PER)
     ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
+    print("Ramka generacji ", ramka.encode())
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
@@ -129,13 +131,15 @@ def DobierzPER(frq):
         delta_f = f_max - frq
         indeks = F_MAX.index(f_max)
         if delta_f >=0 : break
-    print("Czestotliwosc: ",F_MAX[indeks])
+    #print("Czestotliwosc: ",F_MAX[indeks])
     PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
     if PER < PER_MIN : PER = PER_MIN
-    print("Okres: ",PER)
+    #print("Okres: ",PER)
     return PER,indeks
 #-------------------------------------------------------------------------------------------
 def PER_na_2_znaki(PER):
+    PER = np.array([PER])
+    PER = PER.astype('uint16')
     T1 = PER // 256 # STARSZY BAJT
     T1 = chr(T1)
     T2 = PER % 256  # MLODSZY BAJT
@@ -155,13 +159,13 @@ def zamienNaZnaki(przebieg,PER,liczba_probek):
 #-------------------------------------------------------------------------------------------
 def NadajCOM(ramka):
     ramka = ramka + "$$$$"
-    #print("długosc ramki ", len(ramka))
-    #print("\n",ramka,"\n",ramka.encode(),"\n")
-    port_szeregowy.write(ramka.encode())
+    #port_szeregowy.write(ramka.encode())
+    #port_szeregowy.write(ramka)
+    #''.join(str(ord(c)) for c in s)
+    ramka_byte = bytearray()
+    ramka_byte.extend(map(ord, ramka))
+    port_szeregowy.write(ramka_byte)
     dane = port_szeregowy.read(len(ramka))
-    #print('\n\n\n')
-    #print(dane)
-    #print('\n\n\n')
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
     global port_szeregowy
