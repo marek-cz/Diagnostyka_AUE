@@ -11,6 +11,7 @@ import numpy as np
 import random
 from scipy import linalg
 import os
+import sygnaly
 
 os.chdir('uklady')
 lista_ukladow = os.listdir()
@@ -143,7 +144,7 @@ def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
     return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
 
 #------------------------------------------------------------------------------
-def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
+def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
 
@@ -157,7 +158,8 @@ def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BA
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+            charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+            wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
@@ -170,14 +172,16 @@ def slownikUszkodzen(elementy = uklad.elementy, badane_czestotliwosci = uklad.BA
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+            charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+            wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
         elementy_modyfikacje = copy.deepcopy( elementy )
 
     (licznik, mianownik) = uklad.transmitancja(elementy)
-    wartosci = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+    charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
+    wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
     słownikUszkodzen.setdefault('Nominalne',wartosci)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -299,74 +303,42 @@ def PolaczDwieSygnatury(slownik):
                       
     return s1
 #------------------------------------------------------------------------------
-
-def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen,badane_czestotliwosci):
-    plt.clf()
+def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+    #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' :
-            plt.plot(slownik_uszkodzen[uszkodzenie][0],slownik_uszkodzen[uszkodzenie][1],'o-', label = uszkodzenie)
-        else :
-            liczba_punktow = len( slownik_uszkodzen[uszkodzenie] )
-            liczba_czestotliwosci = len( badane_czestotliwosci )
-            lista = []
-            for j in range( liczba_czestotliwosci ):
-                lista.append([])
-                for i in range( liczba_punktow ):
-                    lista[j].append(slownik_uszkodzen[uszkodzenie][i][j])
-            plt.plot(lista[0],lista[1],'o-', label = uszkodzenie)
-    plt.title('ROZSTRAJANIE ELEMENTOW')
+            continue
+        A = slownik_uszkodzen[uszkodzenie]
+        A = np.transpose(A)
+        plt.plot(A[0],A[1],'o-', label = uszkodzenie)
     plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
     plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
     plt.legend()
     plt.show()
+
 
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2DdB(slownik_uszkodzen,badane_czestotliwosci):
-    plt.clf()
+def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+    #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
+        A = slownik_uszkodzen[uszkodzenie]
+        A = np.transpose(A)
         if uszkodzenie == 'Nominalne' :
-            plt.plot(20*np.log10(slownik_uszkodzen[uszkodzenie][0]),20*np.log10(slownik_uszkodzen[uszkodzenie][1]),'o-', label = uszkodzenie)
+            A = A.reshape((2,1))
+            plt.plot(A[0][:1],A[1][:1],'o-', label = uszkodzenie)
+            #continue
         else :
-            liczba_punktow = len( slownik_uszkodzen[uszkodzenie] )
-            liczba_czestotliwosci = len( badane_czestotliwosci )
-            lista = []
-            for j in range( liczba_czestotliwosci ):
-                lista.append([])
-                for i in range( liczba_punktow ):
-                    lista[j].append(slownik_uszkodzen[uszkodzenie][i][j])
-            plt.plot(20*np.log10(lista[0]),20*np.log10(lista[1]),'o-', label = uszkodzenie)
-    plt.title('ROZSTRAJANIE ELEMENTOW')
+            plt.plot(A[0],A[1],'o-', label = uszkodzenie)
+    A = pomiar
+    A = np.transpose(A)
+    plt.plot(A[0][:1],A[1][:1],'ko', label = "pomiar")
     plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
     plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
     plt.legend()
     plt.show()
-
-#------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_i_Pomiar(slownik_uszkodzen,badane_czestotliwosci,pomiar):
-    plt.clf()
-    i = 0
-    for uszkodzenie in slownik_uszkodzen:
-        if uszkodzenie == 'Nominalne' :
-            plt.plot(slownik_uszkodzen[uszkodzenie][0],slownik_uszkodzen[uszkodzenie][1],'o-', label = uszkodzenie)
-        else :
-            liczba_punktow = len( slownik_uszkodzen[uszkodzenie] )
-            liczba_czestotliwosci = len( badane_czestotliwosci )
-            lista = []
-            for j in range( liczba_czestotliwosci ):
-                lista.append([])
-                for i in range( liczba_punktow ):
-                    lista[j].append(slownik_uszkodzen[uszkodzenie][i][j])
-            plt.plot(lista[0],lista[1],'o-', label = uszkodzenie)
-    plt.plot(pomiar[0],pomiar[1],'o-', label = 'Pomiar')
-    plt.title('ROZSTRAJANIE ELEMENTOW')
-    plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
-    plt.legend()
-    plt.show()
-
-#------------------------------------------------------------------------------ 
+ 
 #------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne3D_oszarNominalny(slownik_uszkodzen,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
     #plt.clf()
@@ -536,7 +508,7 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(slownik_uszkodzen,pomiar,
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
-def wygenerujMacierzDanychPCA(elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC,tolerancja = uklad.TOLERANCJA,liczba_punktow = uklad.LICZBA_PUNKTOW):
+def wygenerujMacierzDanychPCA(sygnal,elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC,tolerancja = uklad.TOLERANCJA,liczba_punktow = uklad.LICZBA_PUNKTOW):
     """
     GENERUJEMY MACIERZ DANYCH DO ANALIZY PCA
     KAZDA KOLUMNA MACIERZY ODPOWIADA JEDNEMU WEKTOROWI POMIAROWEMU
@@ -573,7 +545,7 @@ def wygenerujMacierzDanychPCA(elementy = uklad.elementy,czestotliwosci = uklad.B
                     #elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
                 elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * uszkodzenie / 100
                 l, m = uklad.transmitancja(elementy_modyfikacje)
-                X_t[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+                X_t[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci) * sygnaly.widmoMultisin(sygnal,czestotliwosci)
                 licznik = licznik +  1
     return np.transpose(X_t)    
 #------------------------------------------------------------------------------
@@ -695,3 +667,26 @@ def analizaEB(klaster_danych,macierz_kowariancji,srodek):
     
     print(licznik)
     return d_max,d_min,eb_min,eb_max,indeks_min,indeks_max
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def odleglosci(slownikUszkodzen,pomiar):
+    d_min_lista = []
+    for uszkodzenie in slownikUszkodzen:
+        if uszkodzenie == "Nominalne":
+            r = slownikUszkodzen["Nominalne"] - pomiar
+            d2 = np.dot(r,np.transpose(r))
+            d = np.sqrt(d2)
+            print (uszkodzenie," : ",d)
+            d_min_lista.append(d)
+        else :
+            d_min = 10000
+            for i in range(slownikUszkodzen[uszkodzenie].shape[0]):
+                r = slownikUszkodzen[uszkodzenie][i] - pomiar
+                d2 = np.dot(r,r)
+                d = np.sqrt(d2)
+                if d < d_min : d_min = d
+            print (uszkodzenie," : ",d_min)
+            d_min_lista.append(d_min)
+
+    return d_min_lista
