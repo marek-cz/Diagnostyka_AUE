@@ -215,6 +215,9 @@ def OdczytajPomiar():
                 #print("Liczba odebranych Bajtow: ",len(dane))
                 for bajt in dane:
                     dane_string += bajt.decode()
+                #f = open("../../Pomiary/Pomiary_filtru/pomiary/pomiary.txt","a")
+                #f.write(dane_string)
+                #f.close()
                 return dane_string
         else :
             licznik_znakow_terminacji = 0
