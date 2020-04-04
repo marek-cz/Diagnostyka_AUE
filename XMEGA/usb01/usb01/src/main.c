@@ -379,12 +379,15 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 
 	for(n = 0;n<N;n++) // n -> DFT probka czasu
 	{
-		Re_DFT += (sygnal[n] * cos( (2 * M_PI * k * n)/N))/N;
-		Im_DFT += (sygnal[n] * sin( (2 * M_PI * k * n)/N))/N;
+		float x =  ADC_VREF * ( (float)(sygnal[n]) - ADC_OFFSET ) / ADC_MAX_F;
+		//Re_DFT += (sygnal[n] * cos( (2 * M_PI * k * n)/N))/N;
+		//Im_DFT += (sygnal[n] * sin( (2 * M_PI * k * n)/N))/N;
+		Re_DFT += (x * cos( (2 * M_PI * k * n)/N))/N;
+		Im_DFT += (x * sin( (2 * M_PI * k * n)/N))/N;
 	}
 
-	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // z normalizacja -> do 1 V
-	//Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
+	//Modul_DFT = ADC_VREF *  sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // przeejscie z wartosci ADC na napiecie
+	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
 	return Modul_DFT;
 
 }
