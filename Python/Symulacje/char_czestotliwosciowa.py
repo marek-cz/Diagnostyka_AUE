@@ -61,7 +61,7 @@ plt.rc('axes', labelsize = 14)
 plt.rc('xtick', labelsize=12)
 plt.rc('ytick', labelsize=12) 
 
-f = np.arange(1,500,1)
+f = np.arange(1,5000,1)
 
 # na podstawie dokumentacji scipy
 wyrysujCharakterystyki(uklad.elementy,f)
