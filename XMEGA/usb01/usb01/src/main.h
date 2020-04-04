@@ -86,7 +86,9 @@
 #define PRPC_TC1 (1<<1)
 
 //	makra do obliczen
-#define ADC_MAX_F 4095.0
+#define ADC_MAX_F 4096.0
+#define ADC_VREF 2.0625
+#define ADC_OFFSET 250.0
 #define WIDMO_FLOAT_TO_UINT 100000
 //----------------------------------------------------
 //				PROTOTYPY FUNKCJI
