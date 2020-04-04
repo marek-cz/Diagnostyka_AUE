@@ -5,11 +5,13 @@ import struct
 
 def wyrysuj_okres(dane,PER):        
     F_CPU = 32000000 # 32 MHz - czestotliwosc taktowania rdzenia
+    ADC_VREF = 2.0625
+    ADC_MAX = 4096
     dane = np.asarray(dane).astype('uint16')
 
     print(dane.mean())
 
-    dane = dane / 4095 
+    dane = (dane/ ADC_MAX ) * ADC_VREF # przeejscie z wartosci ADC na napiecie
         
     fs = F_CPU/(PER + 1) # czestotliwosc probkowania
     
@@ -24,6 +26,8 @@ def wyrysuj_okres(dane,PER):
     Y = Y[range(int(n/2))]
 
     Y_abs = np.abs(Y)
+    do_zapisu = Y_abs[1:11] # pomijamy skladowa stala!
+    np.save("../../Pomiary/Pomiary_filtru/pomiary/pomiary.npy",do_zapisu)
     #Y_abs /= Y_abs[1:].max()
     
     Y_abs_dB = 20 * np.log10(Y_abs)
