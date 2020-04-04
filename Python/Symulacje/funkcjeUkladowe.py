@@ -47,11 +47,20 @@ PROG_DOLNY_PROCENTY = 50
 ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY = 5
 WARTOSC_NOMINALNA_PROCENTY = 100
 
+F_CPU = 32e6
+LICZBA_PROBEK = 500
+
+PER = (F_CPU//(LICZBA_PROBEK*uklad.BADANE_CZESTOTLIWOSCI[0])) - 1 # wartosc rejestru PER
+F_ZNORMALIZOWANE = uklad.BADANE_CZESTOTLIWOSCI / uklad.BADANE_CZESTOTLIWOSCI[0]
+uklad.BADANE_CZESTOTLIWOSCI[0] = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
+uklad.BADANE_CZESTOTLIWOSCI = F_ZNORMALIZOWANE * uklad.BADANE_CZESTOTLIWOSCI[0]
+
 #------------------------------------------------------------------------------
 def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     f = np.asarray(f)
     w = 2*np.pi*f
     potegi_w_liczniku = np.arange(len(licznik_transmitancji)-1,-1,-1)
+    #print(potegi_w_liczniku)
     potegi_w_mianowniku = np.arange(len(mianownik_transmitancji)-1,-1,-1)
     char_czest_licznik = 0
     char_czest_mianownik = 0
@@ -159,7 +168,7 @@ def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = u
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
             charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
+            wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
@@ -173,7 +182,7 @@ def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = u
             #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
             charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
+            wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
@@ -181,7 +190,7 @@ def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = u
 
     (licznik, mianownik) = uklad.transmitancja(elementy)
     charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-    wartosci = charAmpl * sygnaly.widmoMultisin(sygnal,badane_czestotliwosci)
+    wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
     słownikUszkodzen.setdefault('Nominalne',wartosci)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -545,7 +554,7 @@ def wygenerujMacierzDanychPCA(sygnal,elementy = uklad.elementy,czestotliwosci = 
                     #elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
                 elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * uszkodzenie / 100
                 l, m = uklad.transmitancja(elementy_modyfikacje)
-                X_t[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci) * sygnaly.widmoMultisin(sygnal,czestotliwosci)
+                X_t[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci) * sygnaly.widmo(sygnal,czestotliwosci)
                 licznik = licznik +  1
     return np.transpose(X_t)    
 #------------------------------------------------------------------------------
@@ -675,7 +684,7 @@ def odleglosci(slownikUszkodzen,pomiar):
     for uszkodzenie in slownikUszkodzen:
         if uszkodzenie == "Nominalne":
             r = slownikUszkodzen["Nominalne"] - pomiar
-            d2 = np.dot(r,np.transpose(r))
+            d2 = np.dot(r,r)
             d = np.sqrt(d2)
             print (uszkodzenie," : ",d)
             d_min_lista.append(d)
