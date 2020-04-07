@@ -39,7 +39,7 @@ TOLERANCJA = {'R' : 0.01, 'C' : 0.02}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
-BADANE_CZESTOTLIWOSCI = np.array([50,100,150])
+BADANE_CZESTOTLIWOSCI = np.array([1,2,3,4,5,6,7,8,9,10]) *20
 #BADANE_CZESTOTLIWOSCI = np.array([100,150])
 #------------------------------------------------------------------------------------
 # 3. LICZBA PUNKTOW NA ELEMENT

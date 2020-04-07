@@ -28,9 +28,9 @@ n = 1e-9
 R1 = 100 * k
 R2 = 10 * k
 
-C1 = 45 * n
-C2 = 45 * n
-C3 = 45 * n
+C1 = 45.37 * n
+C2 = 49.77 * n
+C3 = 45.47 * n
 
 
 elementy = {'R1' : R1,'R2' : R2,'C1' : C1,'C2' : C2,'C3' : C3}
@@ -39,7 +39,7 @@ TOLERANCJA = {'R' : 0.01, 'C' : 0.05}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
-BADANE_CZESTOTLIWOSCI = np.array([1,2,3,4,5,6,7,8,9,10]) *15 #np.array([50,100,150])
+BADANE_CZESTOTLIWOSCI = np.array([1,2,3,4,5,6,7,8,9,10]) *20 #np.array([50,100,150])
 #BADANE_CZESTOTLIWOSCI = np.array([100,150])
 #------------------------------------------------------------------------------------
 # 3. LICZBA PUNKTOW NA ELEMENT
