@@ -3,7 +3,6 @@
 #------------------------------------------
 import tkinter as tk
 import GUI_backend as backend
-import os
 #------------------------------------------
 ##### utworzenie instancji okna
 okno = tk.Tk()
@@ -16,6 +15,7 @@ okno.resizable(False, False)
 portyCOM = [] # LISTA ZAWIERAJACA PORTY COM
 wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru COM
 wyborTypuPomiaru = tk.StringVar()
+wyborUkladu = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
 czestotliwosc = 1000
 opoznienie_ms = 10
@@ -24,8 +24,9 @@ zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
 
-os.chdir('slowniki_uszkodzen')
+backend.os.chdir('slowniki_uszkodzen')
 uklady = []
+UKLAD_DOMYSLNY = 'HPF_MFB'
 #------------------------------------------
 #           FUNKCJE
 def funkcjaPrzycisku1():
@@ -38,7 +39,7 @@ def funkcjaPrzycisku1():
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
     
-    backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get())
+    backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get())
     
 def zmianaCOM(*args): # function called when var changes
     # this is where you'd set another variable to var.get()
@@ -47,7 +48,10 @@ def zmianaCOM(*args): # function called when var changes
 def zmianaMetodyPomiaru(*args): # function called when var changes
     # this is where you'd set another variable to var.get()
     xyz = 0 # nic
-    
+
+def zmianaUkladu(*args):
+    xyz = 0 # nic :)
+
 def WypiszPortyCOM():
     global portyCOM
     global wyborPortuCOM
@@ -68,10 +72,10 @@ def WypiszUklady():
     for uklad in uklady:
         Uklad_menu.delete(uklad)
     # odswierzenie listy ukladow
-    uklady = os.listdir()
+    uklady = backend.os.listdir()
     # dodanie ukladow do menu
     for uklad in uklady:
-        Uklad_menu.add_radiobutton(label = uklad)
+        Uklad_menu.add_radiobutton(label = uklad, value = uklad, variable = wyborUkladu)
  
 #------------------------------------------------------------------------------------------------------
 # top menu:
@@ -95,6 +99,8 @@ for typ_pomiaru in typyPomiaru:
 wyborTypuPomiaru.set(typyPomiaru[0]) # domyslna wartosc
 menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
 
+wyborUkladu.set(UKLAD_DOMYSLNY)
+wyborUkladu.trace('w',zmianaUkladu) #seldzenie zmiennej wybor ukladu
 Uklad_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszUklady)
 menu1.add_cascade(label = 'Układ',menu = Uklad_menu)
 

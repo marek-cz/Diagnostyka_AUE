@@ -5,6 +5,7 @@ MODUL ZAWIERAJACY BACK-END DO GUI
 import serial
 import serial.tools.list_ports
 import numpy as np
+import os
 import funkcje
 #-------------------------------------------------------------------------------------------
 # stale
@@ -28,18 +29,24 @@ TIMEOUT = None
 POMIAR_MULTISIN  = 1
 POMIAR_IMPULSOWY = 2
 PER_MIN = 31
+
+
+SCIEZKA_DO_SLOWNIKOW = 'C:\\Users\\Marek\\Desktop\\Studia\\STUDIA_MAGISTERSKIE\\Praca_Magisterska\\Programy\\Python\\slowniki_uszkodzen'
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
 #czestotliwosc = 1000
 PER_INT = 31
 wyniki_pomiaru = [1]
+slownik_uszkodzen = {} # zmienna globalna zawierajaca slownik uszkodzen
 #-------------------------------------------------------------------------------------------
 
-def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM):
+def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa_ukladu):
     global wyniki_pomiaru
-    print(typ_pomiaru)
+    global slownik_uszkodzen
 
+
+    slownik_uszkodzen = WczytajSlownikUszkodzenMultisin(nazwa_ukladu)
     if (not (OtworzPortCOM(portCOM))) : return False # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
     if (opcje_pomiaru["Pomiar"]) :
@@ -221,3 +228,23 @@ def OdczytajPomiar():
                 return dane_string
         else :
             licznik_znakow_terminacji = 0
+#-------------------------------------------------------------------------------------------
+
+def WczytajSlownikUszkodzenMultisin(nazwa_ukladu):
+
+    slownik = {}
+    
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    # wejscie do katalogu z wybramym ukladem
+    os.chdir(nazwa_ukladu+'/Slownik_Multisin')
+    lista_plikow = os.listdir() # nazwy plikow oznaczaja sygnatury w slowniku
+    for nazwa_pliku in lista_plikow:
+        indeks_kropki = nazwa_pliku.find('.')
+        sygnatura = nazwa_pliku[:indeks_kropki]
+        slownik[sygnatura] = np.load(nazwa_pliku) # do slownika mozna dodawac nowe elementy w ten sposob
+    
+    # powrot do lokalizacji pierwotnej
+    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    return slownik
