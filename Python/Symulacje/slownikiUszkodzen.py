@@ -15,7 +15,11 @@ nazwa_ukladu = nazwa_pliku_z_ukladem[:indeks_kropki]
 
 # przejscie do katalogu slowniki uszkodzen :
 # po wyborze układu jestesmy w folderze uklady
-funkcjeUkladowe.os.chdir('../../slowniki_uszkodzen')
+funkcjeUkladowe.os.chdir('../..')
+if not(funkcjeUkladowe.os.path.exists('slowniki_uszkodzen')):
+    # jezeli folder nie istnieje tworzymy go
+    funkcjeUkladowe.os.mkdir('slowniki_uszkodzen')
+funkcjeUkladowe.os.chdir('slowniki_uszkodzen')
 if not(funkcjeUkladowe.os.path.exists(nazwa_ukladu)):
     # jezeli folder nie istnieje tworzymy go
     funkcjeUkladowe.os.mkdir(nazwa_ukladu)
