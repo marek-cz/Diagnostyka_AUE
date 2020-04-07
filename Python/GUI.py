@@ -3,12 +3,13 @@
 #------------------------------------------
 import tkinter as tk
 import GUI_backend as backend
+import os
 #------------------------------------------
 ##### utworzenie instancji okna
 okno = tk.Tk()
 #### tytul okna
 okno.title( "Diagnostyka AUE" )
-#okno.geometry("250x250")
+okno.geometry("275x300")
 okno.resizable(False, False)
 #------------------------------------------
 #           ZMIENNE GLOBALNE
@@ -23,33 +24,28 @@ zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
 
-
+os.chdir('slowniki_uszkodzen')
+uklady = []
 #------------------------------------------
 #           FUNKCJE
 def funkcjaPrzycisku1():
     global czestotliwosc
     global opoznienie_ms
     opcje = {} # slownik na opcje do wyslania do analizy-> bez koniecznosci tk
-    #print("Czestotliwosc [Hz]: ",entry_field_czestotliwosc.get())
     czestotliwosc = int(entry_field_czestotliwosc.get() )# pobranie wartosci czestotliwosci
-    #print("Opoznienie [ms]: ",entry_field_opoznienie.get())
     opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
-    #print("Opcje pomiaru: ")
     for opcja in zmienneOpcji:
-        #print(opcja, ": " ,zmienneOpcji[opcja].get(), " \n")
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
-    #print("Typ pomiaru: ", wyborTypuPomiaru.get() )
-    #print("Port szeregowy: ", wyborPortuCOM.get() )
 
     
     backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get())
     
 def zmianaCOM(*args): # function called when var changes
-    #print(wyborPortuCOM.get())  # this is where you'd set another variable to var.get()
+    # this is where you'd set another variable to var.get()
     xyz = 0 # nic
 
 def zmianaMetodyPomiaru(*args): # function called when var changes
-    #print(wyborTypuPomiaru.get())  # this is where you'd set another variable to var.get()
+    # this is where you'd set another variable to var.get()
     xyz = 0 # nic
     
 def WypiszPortyCOM():
@@ -59,7 +55,6 @@ def WypiszPortyCOM():
     for port in portyCOM:
         COM_menu.delete(port)
     # odswiezenie listy portow
-    #portyCOM = ["COM 1","COM 2","COM 3","COM 4","COM 5","COM 6"] # DO TESTOW :)
     portyCOM = backend.ListaPortowCOM()
     # wstawienie do menu nowych portow
     for port in portyCOM :
@@ -67,6 +62,16 @@ def WypiszPortyCOM():
 
 def ZamknijProgram():
     okno.destroy()
+
+def WypiszUklady():
+    global uklady
+    for uklad in uklady:
+        Uklad_menu.delete(uklad)
+    # odswierzenie listy ukladow
+    uklady = os.listdir()
+    # dodanie ukladow do menu
+    for uklad in uklady:
+        Uklad_menu.add_radiobutton(label = uklad)
  
 #------------------------------------------------------------------------------------------------------
 # top menu:
@@ -89,6 +94,9 @@ for typ_pomiaru in typyPomiaru:
     Pomiar_menu.add_radiobutton(label = typ_pomiaru, value = typ_pomiaru, variable = wyborTypuPomiaru)
 wyborTypuPomiaru.set(typyPomiaru[0]) # domyslna wartosc
 menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
+
+Uklad_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszUklady)
+menu1.add_cascade(label = 'Układ',menu = Uklad_menu)
 
 okno.config(menu = menu1)
 #------------------------------------------------------------------------------------------------------
