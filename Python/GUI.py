@@ -8,7 +8,7 @@ import GUI_backend as backend
 okno = tk.Tk()
 #### tytul okna
 okno.title( "Diagnostyka AUE" )
-okno.geometry("275x300")
+okno.geometry("275x375")
 okno.resizable(False, False)
 #------------------------------------------
 #           ZMIENNE GLOBALNE
@@ -19,7 +19,7 @@ wyborUkladu = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
 czestotliwosc = 1000
 opoznienie_ms = 10
-opcje = ["Generacja","Pomiar","Wyrysuj dane","Widmo na MCU","Diagnozuj"]
+opcje = ["Generacja","Pomiar","Wyrysuj dane","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
 zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
