@@ -3,43 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import struct
 
-def wyrysuj_okres(dane,PER):        
-    F_CPU = 32000000 # 32 MHz - czestotliwosc taktowania rdzenia
-    ADC_VREF = 2.0625
-    ADC_MAX = 4096
-    dane = np.asarray(dane).astype('uint16')
-
-    print(dane.mean())
-
-    dane = (dane/ ADC_MAX ) * ADC_VREF # przeejscie z wartosci ADC na napiecie
-        
-    fs = F_CPU/(PER + 1) # czestotliwosc probkowania
+def wyrysuj_okres(dane,widmo,frq):
     
-    n = len(dane) # length of the signal
-    k = np.arange(n)
-    frq = k * (fs/n) # czestotliwosc - widmo sie powiela!
 
-    frq = frq[range(int(n/2))] # bierzemy tylko polowe, zeby nie powielac widma
-
-    #Y = np.fft.fft(dane - dane.mean())/n # usuniecie wartosci sredniej
-    Y = np.fft.fft(dane)/n # fft computing and normalization
-    Y = Y[range(int(n/2))]
-
-    Y_abs = np.abs(Y)
-    do_zapisu = Y_abs[1:11] # pomijamy skladowa stala!
-    np.save("../../Pomiary/Pomiary_filtru/pomiary/pomiary.npy",do_zapisu)
-    #Y_abs /= Y_abs[1:].max()
-    
-    Y_abs_dB = 20 * np.log10(Y_abs)
-
+    widmo_dB = 20 * np.log10(widmo)
 
     fig, ax = plt.subplots(2,1)
-    ax[0].plot(dane,'b')
+    ax[0].plot(dane,'bo-')
     ax[0].set_xlabel('Probka n')
     ax[0].set_ylabel('U(t) [V]')
     ax[0].set_title('Probki z ADC')
-    #ax[1].plot(frq,np.abs(Y),'bo') # plotting the spectrum
-    ax[1].plot( frq,Y_abs_dB,'bo') # plotting the spectrum
+    ax[1].plot( frq,widmo_dB,'bo') # plotting the spectrum
     ax[1].set_xscale('log')
     ax[1].set_xlabel('Czestotliwosc [Hz]')
     ax[1].set_ylabel('|Y(f)| dB')
