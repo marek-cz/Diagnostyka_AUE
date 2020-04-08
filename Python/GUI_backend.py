@@ -7,9 +7,12 @@ import serial.tools.list_ports
 import numpy as np
 import os
 import funkcje
+import datetime
 #-------------------------------------------------------------------------------------------
 # stale
-F_CPU = 32000000# 32 MHz
+F_CPU = int(32e6) # 32 MHz - czestotliwosc taktowania rdzenia
+ADC_VREF = 2.0625
+ADC_MAX = 4096
 POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
 LICZBY_PROBEK = [500,250,100]
 F_MAX = [2000,4000,10000]
@@ -35,17 +38,20 @@ SCIEZKA_DO_SLOWNIKOW = 'C:\\Users\\Marek\\Desktop\\Studia\\STUDIA_MAGISTERSKIE\\
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
-#czestotliwosc = 1000
 PER_INT = 31
-wyniki_pomiaru = [1]
+wyniki_pomiaru = [1,2,3,4,5,6,7,11,9]
+widmoPC = np.array([])
+widmoMCU = np.array([])
 slownik_uszkodzen = {} # zmienna globalna zawierajaca slownik uszkodzen
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa_ukladu):
     global wyniki_pomiaru
     global slownik_uszkodzen
+    global widmoPC
 
-
+    #print(opcje_pomiaru)
+    
     slownik_uszkodzen = WczytajSlownikUszkodzenMultisin(nazwa_ukladu)
     if (not (OtworzPortCOM(portCOM))) : return False # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
@@ -59,9 +65,24 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
             WidmoMultiSin(typ_pomiaru)
         else :
             WidmoSinus(typ_pomiaru)
+
+    if (opcje_pomiaru["Diagnozuj"]) :
+        widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+        x = widmoPC[1:11] # na razie tak :)
+        odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen,x)
+        KlasyfikacjaOdleglosc(odleglosc_slownik)
+            
     if (opcje_pomiaru["Wyrysuj dane"]) :
         ZamknijCOM(portCOM)
-        funkcje.wyrysuj_okres(wyniki_pomiaru,PER_INT)
+        funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+        #funkcje.plt.clf() # wyczyszczenie
+        widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+        funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
+        
+    
+    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar')
+    if (opcje_pomiaru["Zapisz widmo PC"]) : zapisDanych(widmoPC,'widmoPC')
+    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU')
     ZamknijCOM(portCOM)
 #-------------------------------------------------------------------------------------------
 def ListaPortowCOM():
@@ -81,31 +102,33 @@ def Generacja(czestotliwosc,przebieg):
     przebieg = PRZEBIEGI[przebieg_string]
     print("Rejestr timera : ",PER)
     ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
-    print("Ramka generacji ", ramka.encode())
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
     delay = int(delay)
-    #delay = delay // 10
-    #if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     dane = dane.strip('$')
     dane = dane.split()
-    return dane
+    napiecie = daneADCnaNapiecie(dane)
+    return napiecie
 #-------------------------------------------------------------------------------------------
 
 def PomiarImp(delay):
     delay = int(delay)
-    #delay = delay // 10
-    #if delay > 255 : delay = 255
     ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     dane = dane.strip('$')
     dane = dane.split()
-    return dane
+    napiecie = daneADCnaNapiecie(dane)
+    return napiecie
+#-------------------------------------------------------------------------------------------
+def daneADCnaNapiecie(dane):
+    dane = np.asarray(dane).astype('float64')
+    napiecie = (dane/ ADC_MAX ) * ADC_VREF
+    return napiecie
 #-------------------------------------------------------------------------------------------
 def WidmoMCU(harmoniczna,typ_pomiaru):
     ramka =  "W"+ chr(typ_pomiaru) + chr(harmoniczna)
@@ -138,10 +161,8 @@ def DobierzPER(frq):
         delta_f = f_max - frq
         indeks = F_MAX.index(f_max)
         if delta_f >=0 : break
-    #print("Czestotliwosc: ",F_MAX[indeks])
     PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
     if PER < PER_MIN : PER = PER_MIN
-    #print("Okres: ",PER)
     return PER,indeks
 #-------------------------------------------------------------------------------------------
 def PER_na_2_znaki(PER):
@@ -166,9 +187,6 @@ def zamienNaZnaki(przebieg,PER,liczba_probek):
 #-------------------------------------------------------------------------------------------
 def NadajCOM(ramka):
     ramka = ramka + "$$$$"
-    #port_szeregowy.write(ramka.encode())
-    #port_szeregowy.write(ramka)
-    #''.join(str(ord(c)) for c in s)
     ramka_byte = bytearray()
     ramka_byte.extend(map(ord, ramka))
     port_szeregowy.write(ramka_byte)
@@ -222,9 +240,6 @@ def OdczytajPomiar():
                 #print("Liczba odebranych Bajtow: ",len(dane))
                 for bajt in dane:
                     dane_string += bajt.decode()
-                #f = open("../../Pomiary/Pomiary_filtru/pomiary/pomiary.txt","a")
-                #f.write(dane_string)
-                #f.close()
                 return dane_string
         else :
             licznik_znakow_terminacji = 0
@@ -248,3 +263,70 @@ def WczytajSlownikUszkodzenMultisin(nazwa_ukladu):
     # powrot do lokalizacji pierwotnej
     os.chdir(SCIEZKA_DO_SLOWNIKOW)
     return slownik
+#-------------------------------------------------------------------------------------------
+
+def ObliczWidmo(typ_widma,dane,PER):
+    fs = F_CPU/(PER + 1) # czestotliwosc probkowania
+    if typ_widma == 'FFT':
+        n = len(dane) # length of the signal
+        k = np.arange(n)
+        frq = k * (fs/n) # czestotliwosc - widmo sie powiela!
+        frq = frq[range(int(n/2))] # bierzemy tylko polowe, zeby nie powielac widma
+        widmo = np.fft.fft(dane)/n # fft computing and normalization
+        widmo = widmo[range(int(n/2))]
+        widmo = abs(widmo)
+
+    return widmo,frq
+#-------------------------------------------------------------------------------------------
+
+def zapisDanych(dane,etykieta_pliku):
+    dane = np.asarray(dane)
+    data = datetime.datetime.now()
+    nazwa_pliku = etykieta_pliku + '_' + str( data.hour ) + '-' + str( data.minute )+ '-' + str( data.second )
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    os.chdir('..') # przejscie katalog wyzej, do glownego katalogu programu
+    if not(os.path.exists('Pomiary')):
+        # jezeli folder nie istnieje tworzymy go
+        os.mkdir('Pomiary')
+    os.chdir('Pomiary')
+    nazwa_katalogu_z_pomiarem = str(data.year) + '-' + str(data.month) + '-' + str(data.day)
+    if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
+        # jezeli folder nie istnieje tworzymy go
+        os.mkdir(nazwa_katalogu_z_pomiarem)
+    os.chdir(nazwa_katalogu_z_pomiarem)
+    np.save(nazwa_pliku,dane)
+    os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
+    
+#-------------------------------------------------------------------------------------------
+
+def odlegloscPuntuOdSlownika(slownik, punkt):
+    d_min_slownik = {}
+    for uszkodzenie in slownik:
+        if uszkodzenie == "Nominalne":
+            r = slownik["Nominalne"] - punkt
+            d2 = np.dot(r,r)
+            d = np.sqrt(d2)
+            #print (uszkodzenie," : ",d)
+            d_min_slownik[uszkodzenie] = d
+        else :
+            d_min = 10000
+            for i in range(slownik[uszkodzenie].shape[0]):
+                r = slownik[uszkodzenie][i] - punkt
+                d2 = np.dot(r,r)
+                d = np.sqrt(d2)
+                if d < d_min : d_min = d
+            #print (uszkodzenie," : ",d_min)
+            d_min_slownik[uszkodzenie] = d_min
+
+    return d_min_slownik
+    
+#-------------------------------------------------------------------------------------------
+
+def KlasyfikacjaOdleglosc(slownik_odleglosci):
+    for element in slownik_odleglosci:
+        print(element,' : ',slownik_odleglosci[element])
+    print("___________________________________________________")
+    print("\n")
+        
