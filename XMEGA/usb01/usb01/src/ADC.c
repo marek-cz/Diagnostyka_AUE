@@ -9,7 +9,7 @@
 
 void ADC_Init(ADC_CH_t * adc_kanal,register8_t adc_mux)
 {
-	ADCA.REFCTRL = ADC_REFSEL_INTVCC_gc;				// napiecie odniesienia Vcc/1.6 ~= 2.0625
+	ADCA.REFCTRL = ADC_REFSEL_INT1V_gc;				// napiecie odniesienia Vcc/1.6 ~= 2.0625
 	ADCA.PRESCALER = ADC_PRESCALER_DIV16_gc;			// fADC = fPER/16 = 2 MHz
 	//ADCA.PRESCALER = ADC_PRESCALER_DIV8_gc;
 	
