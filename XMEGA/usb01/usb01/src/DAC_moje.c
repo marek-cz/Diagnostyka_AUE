@@ -18,6 +18,11 @@ void DAC_init(void) // na ATXMEGA256A3BU jest jeden DAC na porcie B -> DACB PB2 
 	DACB.CTRLA = DAC_ENABLE_bm | DAC_CH0EN_bm; //W³¹cz DAC, kana³ 0 routowany na IO (PB2) - ADC2 NA PLYTCE
 }
 
+void UstawDACa(uint16_t rejestrDACa)
+{
+	DACB.CH0DATA = rejestrDACa;	// wpisz wartosc do rejestru -> wystaw na wyjscie
+	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
+}
 
 /***************************************************************************************************/
 

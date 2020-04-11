@@ -87,7 +87,7 @@
 
 //	makra do obliczen
 #define ADC_MAX_F 4096.0
-#define ADC_VREF 2.0625
+//#define ADC_VREF 1.0
 #define ADC_OFFSET 250.0
 #define WIDMO_FLOAT_TO_UINT 100000
 //----------------------------------------------------
@@ -117,4 +117,6 @@ void WlaczPeryferia(void);
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
 float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f);
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
+uint16_t KalibracjaOffsetuADC(void);
+float KalibracjaWzmocnieniaADC(void);
 #endif /* MAIN_H_ */

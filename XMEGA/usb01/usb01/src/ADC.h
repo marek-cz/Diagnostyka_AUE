@@ -17,7 +17,7 @@ UWZGLEDNIC PRZY ZBIERANIU OKRESU DANYCH!!!*/
 
 extern void ADC_Init(ADC_CH_t * adc_kanal,register8_t adc_mux);
 extern void ADC_CH_Init(ADC_CH_t * adc_kanal,register8_t adc_mux );
-
+extern uint16_t PomiarADC(void);
 
 
 #endif /* ADC_H_ */

@@ -38,6 +38,8 @@ uint16_t probki_sygnalu[LICZBA_PROBEK_W_TABLICY_MAX];
 uint16_t probki_pomiaru[LICZBA_PROBEK_W_TABLICY_MAX];
 volatile uint8_t flagi = 0;
 volatile uint16_t licznik_ms = 0;
+volatile uint16_t offsetADC;
+volatile float gainADC;
 //-----------------------------------------------------------------------------------------------
 //				DEKLARACJE FUNKCJI
 
@@ -95,7 +97,8 @@ int main (void)
 	 //----------------------------------------------------
 	 //				FUNKCJE WYKONYWANE JEDNORAZOWO
 	 WlaczPeryferia();
-	 //_delay_ms(3000);
+	 offsetADC = KalibracjaOffsetuADC();
+	 gainADC = KalibracjaWzmocnieniaADC();
 	 Init();
 	 //----------------------------------------------------
 	 //				PETLA GLOWNA 
@@ -145,10 +148,15 @@ void Init(void)
 	SelectPLL(OSC_PLLSRC_RC2M_gc, 16);	// 32 MHz na wyjsciu PLL
 	CPU_CCP = CCP_IOREG_gc;				// odblokowanie zmiany konfiguracji zegara
 	CLK_CTRL = CLK_SCLKSEL_PLL_gc;		// taktowanie procesora 32 MHz
-	//#undef  F_CPU
-	//#define F_CPU 32000000UL
-	ADCA.CALL=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL0));
-	ADCA.CALH=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL1));
+	#undef  F_CPU
+	#define F_CPU 32000000UL
+	
+	// wczytanie danych kalibracyjnych z pamieci nieulotnej:
+	ADCA.CALL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL0)); // blad nieliniowosci ADC
+	ADCA.CALH = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL1)); // blad nieliniowosci ADC
+	DACB.CH0GAINCAL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, DACB0GAINCAL)); // blad wzmocnienia DAC
+	DACB.CH0OFFSETCAL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, DACB0OFFCAL)); // blad offsetu DAC
+	
 	sei();	// globalne odblokowanie przerwan
 	DMA_init();
 	DAC_init();
@@ -376,18 +384,20 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 	float Im_DFT    = 0;
 	float Modul_DFT = 0;
 	int n;
+	uint16_t x = 0;
 
 	for(n = 0;n<N;n++) // n -> DFT probka czasu
 	{
-		float x =  ADC_VREF * ( (float)(sygnal[n]) - ADC_OFFSET ) / ADC_MAX_F;
+		//float x = ( (float)(sygnal[n]) - offsetADC );
+		x = sygnal[n] - offsetADC;
 		//Re_DFT += (sygnal[n] * cos( (2 * M_PI * k * n)/N))/N;
 		//Im_DFT += (sygnal[n] * sin( (2 * M_PI * k * n)/N))/N;
 		Re_DFT += (x * cos( (2 * M_PI * k * n)/N))/N;
 		Im_DFT += (x * sin( (2 * M_PI * k * n)/N))/N;
 	}
 
-	//Modul_DFT = ADC_VREF *  sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // przeejscie z wartosci ADC na napiecie
-	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
+	Modul_DFT = gainADC * sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // przejscie z wartosci ADC na napiecie
+	//Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
 	return Modul_DFT;
 
 }
@@ -448,11 +458,6 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 		char c[sizeof(float)]; // float ma dlugosc 32 bitow 32/8 = 4
 	} unia_widmo;
 	
-	/*union
-	{
-		double widmo;
-		char c[sizeof(double)];	
-	}unia_widmo_double;*/
 	
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
@@ -506,4 +511,64 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			break;
 		default :	break;
 	}
+}
+
+uint16_t KalibracjaOffsetuADC(void)
+{
+	int16_t res_signed;
+	uint16_t res_unsigned;
+	uint16_t offset;
+	
+	// wylaczenie transferu DMA z ADC
+	DMA_CH1_CTRLA &= ~(DMA_CH_ENABLE_bm);
+	// wyczyszczenie potoku ADC
+	ADCA_CTRLA |= ADC_FLUSH_bm;
+	
+	// KONFIGURACJA TRYBU ZE ZNAKIEM :
+	ADCA.CTRLB = ADC_IMPMODE_bm | ADC_CURRLIMIT_NO_gc | ADC_CONMODE_bm ; // tryb signed (CONMODE!) 12 bitowy
+	ADCA.REFCTRL = ADC_REFSEL_INT1V_gc | ADC_BANDGAP_bm; // 1V Vref
+	ADCA.PRESCALER = ADC_PRESCALER_DIV16_gc ; // probkowanie 125 kbps -> dla f_cpu = 2 MHz
+	ADCA.CH0.CTRL = ADC_CH_INPUTMODE_INTERNAL_gc; // KANAL POLACZONY Z WEWNETRZYM ZRODLEM SYGNALU
+	ADCA.CH0.MUXCTRL = ADC_CH_MUXINT_SCALEDVCC_gc; // mierzymy Vcc / 10
+	
+	ADCA.CALL=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL0));
+	ADCA.CALH=ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL1));
+	ADCA.CTRLA=ADC_DMASEL_OFF_gc | ADC_ENABLE_bm;
+	_delay_ms(100);
+	res_signed = PomiarADC(); // pobierz wynik dla trybu ze znakiem
+	//-------------------------
+	// przejscie do trybu bez znaku:
+	ADCA.CTRLB &= ~ADC_CONMODE_bm; // TRYB BEZ ZNAKU!
+	_delay_ms(100);
+	res_unsigned = PomiarADC();
+	_delay_ms(100);
+	offset = res_unsigned - (res_signed << 1); // obliczenie offsetu ADC
+	printf("Offset ADC wynosi : %d\n\r", offset);
+	return offset;
+}
+
+float KalibracjaWzmocnieniaADC(void)
+{
+	volatile uint16_t pomiar1024,pomiar3072;
+	volatile float a;
+	
+	DACB.CH0GAINCAL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, DACB0GAINCAL)); // blad wzmocnienia DAC
+	DACB.CH0OFFSETCAL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, DACB0OFFCAL)); // blad offsetu DAC
+	DACB.CTRLC = DAC_REFSEL_INT1V_gc;          //Wewn. napiêcie ref. 1 V
+	DACB.CTRLA = DAC_ENABLE_bm | DAC_IDOEN_bm; //W³¹cz DAC, kana³ 0 routowany wewnetrznie do ADC
+	
+	ADCA.CTRLB &= ~ADC_CONMODE_bm; // TRYB BEZ ZNAKU!
+	ADCA.CH0.CTRL = ADC_CH_INPUTMODE_INTERNAL_gc; // KANAL POLACZONY Z WEWNETRZYM ZRODLEM SYGNALU
+	ADCA.CH0.MUXCTRL = ADC_CH_MUXINT_DAC_gc; // mierzymy wyjscie DACa
+	
+	UstawDACa(1024);
+	_delay_ms(100);
+	pomiar1024 = PomiarADC();
+	printf("DAC = 1024 -> ADC = %d\n\r",pomiar1024);
+	UstawDACa(3072);
+	_delay_ms(100);
+	pomiar3072 = PomiarADC();
+	printf("DAC = 3072 -> ADC = %d\n\r",pomiar3072);
+	a = (2048.0) / ( (float)(pomiar3072 - pomiar1024) ); // obliczenie nachylenia prostej
+	return a;
 }

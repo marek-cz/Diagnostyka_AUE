@@ -35,5 +35,5 @@ extern const uint16_t sinus_100[100];			// probki sygnalu sinusa
 
 /*		funkcje		*/
 extern void DAC_init(void); // na ATXMEGA256A3BU jest jeden DAC na porcie B -> DACB PB2 - CH0 PB3 - CH1
-
+extern void UstawDACa(uint16_t rejestrDACa);
 #endif /* DAC_MOJE_H_ */
