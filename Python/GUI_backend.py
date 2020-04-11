@@ -11,8 +11,9 @@ import datetime
 #-------------------------------------------------------------------------------------------
 # stale
 F_CPU = int(32e6) # 32 MHz - czestotliwosc taktowania rdzenia
-ADC_VREF = 2.0625
+ADC_VREF = 1.0
 ADC_MAX = 4096
+ADC_OFFSET = 200
 POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
 LICZBY_PROBEK = [500,250,100]
 F_MAX = [2000,4000,10000]
