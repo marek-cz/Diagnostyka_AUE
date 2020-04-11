@@ -124,7 +124,67 @@ def monteCarlo(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,cz
         licznik = licznik +  1
     return klaster
 #------------------------------------------------------------------------------
+def tolerancjaElementu(element,tolerancja):
+    if element.find('R') != -1 :
+        # gdy element jest rezystorem
+        L = 1 - tolerancja['R']
+        H = 1 + tolerancja['R']
+    elif element.find('C') != -1 :
+        L = 1 - tolerancja['C']
+        H = 1 + tolerancja['C']
+    else :
+        print("Czegoś nie uwzględniłeś! : ",element)
+    return L,H   
+#------------------------------------------------------------------------------
+def analizaWorstCase(sygnal,elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA):
+    widmo_sygnalu = sygnaly.widmo(sygnal,czestotliwosci)
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    wynik = np.array([])
+    lista_elementow = list(elementy.keys())
+    liczba_elementow_slownika = len( lista_elementow )
+    licznik = 0
+    liczba_przypadkow = np.power(2,liczba_elementow_slownika)
+    
+    for element in elementy_modyfikacje : # ustawienie wszystkich elementow na minimalna wartosc
+        if element.find('R') != -1 :
+            # gdy element jest rezystorem
+            L = 1 - tolerancja['R']
+            elementy_modyfikacje[element] = elementy[element] * L
+        elif element.find('C') != -1 :
+            # gdy element jets kondensatorem :
+            L = 1 - tolerancja['C']
+            elementy_modyfikacje[element] = elementy[element] * L
+        else :
+            print("Czegoś nie uwzględniłeś! : ",element)
+    # mamy 2^n przypadkow - idziemy przez nie binarnie ;)
+    while (licznik < liczba_przypadkow):
+        licznik_string = "{0:b}".format(licznik)
+        pad = '' # uzupelniamy zerami z przodu
+        for i in range(liczba_elementow_slownika - len(licznik_string)):
+            pad += '0'
+        licznik_string = pad + licznik_string
+        
+        licznik_elementow = 0
+        for element in lista_elementow:
+            L,H = tolerancjaElementu(element,tolerancja)
+            if licznik_string[licznik_elementow] == '1' :
+                elementy_modyfikacje[element] = elementy[element] * H
+            else :
+                elementy_modyfikacje[element] = elementy[element] * L
+            licznik_elementow += 1
 
+        # symulacja:
+        l,m = uklad.transmitancja(elementy_modyfikacje)
+        symulacja = charCzestotliwosciowaModul(l,m,czestotliwosci) * widmo_sygnalu
+        wynik = np.concatenate((wynik, symulacja))
+        licznik += 1
+
+    wynik = wynik.reshape((liczba_przypadkow, wynik.shape[0]//liczba_przypadkow ))
+    
+    return wynik
+    
+        
+#------------------------------------------------------------------------------
 def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
 
     liczba_punktow_plus = liczba_punktow_minus = (liczba_punktow_na_element//2) + 1
@@ -340,6 +400,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen,elementy = uklad
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
+            continue
             A = np.transpose(A)
             plt.plot(A[0],A[1],'o', label = 'Obszar tolerancji')
         else :
@@ -352,6 +413,11 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen,elementy = uklad
                         break
                 plt.plot(X[0],X[1],kolor+'o')
 
+    #tolerancja obszaru nominalnego:
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    plt.plot(A[0],A[1],'o', label = 'Obszar tolerancji')
+    
     # Krzywe nominalne
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
@@ -369,9 +435,6 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen,elementy = uklad
                     kolor = KOLORY_KRZYWE[klucz]
                     break
             plt.plot(krzywa_nominalna[0],krzywa_nominalna[1],kolor+'o-', label = uszkodzenie)
-    #A = pomiar
-    #A = np.transpose(A)
-    #ax.plot(A[0][:1],A[1][:1],A[2][:1],'o', label = "pomiar")
     plt.axis('equal')
     plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
     plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
@@ -391,6 +454,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(slownik_uszkodzen,pomiar,el
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
+            continue
             A = np.transpose(A)
             plt.plot(A[0],A[1],'o', label = 'Obszar tolerancji')
         else :
@@ -402,6 +466,12 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(slownik_uszkodzen,pomiar,el
                         kolor = KOLORY_OBSZAR_TOL[klucz]
                         break
                 plt.plot(X[0],X[1],kolor+'o')
+
+    #tolerancja obszaru nominalnego:
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    plt.plot(A[0],A[1],'o', label = 'Obszar tolerancji')
+
 
     # Krzywe nominalne
     for uszkodzenie in slownik_uszkodzen:
@@ -430,7 +500,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(slownik_uszkodzen,pomiar,el
     plt.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,worst_case = np.array([[0,0]]),badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
     #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
@@ -445,6 +515,9 @@ def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,badane_czes
     A = pomiar
     A = np.transpose(A)
     plt.plot(A[0][:],A[1][:],'ko', label = "pomiar")
+    A = worst_case
+    A = np.transpose(A)
+    plt.plot(A[0][:],A[1][:],'o', label = "Worst Case")
     plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
     plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
     plt.axis('equal')
