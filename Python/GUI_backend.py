@@ -51,10 +51,11 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     global slownik_uszkodzen
     global widmoPC
 
+    wynik = ''
     #print(opcje_pomiaru)
     
     slownik_uszkodzen = WczytajSlownikUszkodzenMultisin(nazwa_ukladu)
-    if (not (OtworzPortCOM(portCOM))) : return False # bledne otwarcie portu
+    if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
     if (opcje_pomiaru["Pomiar"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(opoznienie)
@@ -70,8 +71,11 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
         x = widmoPC[1:11] # na razie tak :)
-        odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen,x)
-        KlasyfikacjaOdleglosc(odleglosc_slownik)
+        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x) :
+            wynik = 'Nominalne'
+        else :
+            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen,x)
+            wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
             
     if (opcje_pomiaru["Wyrysuj dane"]) :
         ZamknijCOM(portCOM)
@@ -85,6 +89,7 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     if (opcje_pomiaru["Zapisz widmo PC"]) : zapisDanych(widmoPC,'widmoPC')
     if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU')
     ZamknijCOM(portCOM)
+    return wynik
 #-------------------------------------------------------------------------------------------
 def ListaPortowCOM():
     porty = list(serial.tools.list_ports.comports())
@@ -324,10 +329,39 @@ def odlegloscPuntuOdSlownika(slownik, punkt):
     return d_min_slownik
     
 #-------------------------------------------------------------------------------------------
+def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt):
+    """
+    Sprawdzenie czy roznica miedzy punktem pomiarowym, a
+    wyznaczonym w symulajci centrum jest na akzdej pozycji
+    mniejsza niz 3 sigma
+    """
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    os.chdir(nazwa_ukladu)
+
+    wartosc_srednia = np.load('wartosc_srednia.npy')
+    sigma = np.load('odchylenie_std.npy')
+
+    r = abs(wartosc_srednia - punkt) # modul roznicy wektorow
+
+    a = r - 3*sigma # pomocniczy wektor
+
+    for delta in a: 
+        if delta > 0 : # jezeli znajdziemy skladowa wektora poza obszarem 3 sigma, to punkt jest poza stanem nominalnym! -> a przynajmniej tak uwazam :)
+            return False
+
+    return True
+    
+#-------------------------------------------------------------------------------------------
 
 def KlasyfikacjaOdleglosc(slownik_odleglosci):
+    d_min, etykieta = slownik_odleglosci['Nominalne'], 'Nominalne'
     for element in slownik_odleglosci:
         print(element,' : ',slownik_odleglosci[element])
+        if slownik_odleglosci[element] < d_min :
+            d_min, etykieta = slownik_odleglosci[element], element
     print("___________________________________________________")
     print("\n")
-        
+
+    return etykieta 
