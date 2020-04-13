@@ -76,7 +76,7 @@ def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     return modul
 
 #------------------------------------------------------------------------------
-def monteCarlo(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
+def monteCarloUniform(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
     """
     DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
     WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
@@ -123,6 +123,51 @@ def monteCarlo(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,cz
         klaster[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
         licznik = licznik +  1
     return klaster
+#------------------------------------------------------------------------------
+def monteCarloNormal(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
+    """
+    DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
+    WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
+    ZWRACA MACIERZ W KTOREJ KAZDY WIERSZ JEST PUNKTEM POMIAROWYM,
+    WIERSZ 0 TO PUNKT NMOMINALNY
+    """
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    czestotliwosci = np.asarray(czestotliwosci)
+    liczba_czestotliwosci = czestotliwosci.shape[0]
+    
+    liczba_wierszy = liczba_losowanMC + 1 # tyle punktow pomiarowych ile jest losowan. +1 bo wiersz 0 to punkt nominalny
+    liczba_kolumn = liczba_czestotliwosci
+    
+    klaster = np.zeros( ( liczba_wierszy , liczba_kolumn ) )
+    l, m = uklad.transmitancja(elementy)
+    klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+    #################################################################################
+    #           LOSOWANIE MONTECARLO
+    #################################################################################
+    licznik = 1
+    for i in range(liczba_losowanMC): # MonteCarlo
+        for element in elementy_modyfikacje: # tolerancje
+            if element in elementy_wykluczone_z_losowania :
+                #print("\n\nTen element nie jest losowany: ",element,"\n\n")
+                elementy_modyfikacje[element] = elementy[element]
+            else :
+                if element.find('R') != -1 :
+                    # gdy element jest rezystorem
+                    tol = tolerancja['R']
+                elif element.find('C') != -1 :
+                    # gdy element jest kondensatorem :
+                    tol = tolerancja['C']
+                else :
+                    print("Czegoś nie uwzględniłeś! : ",element)
+                sigma = (elementy[element] * tol )/3
+                elementy_modyfikacje[element] = np.random.normal(elementy[element], sigma)
+                #print(element," : ",elementy_modyfikacje[element])
+        #print(elementy_modyfikacje)
+        l, m = uklad.transmitancja(elementy_modyfikacje)
+        klaster[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+        licznik = licznik +  1
+    return klaster
+
 #------------------------------------------------------------------------------
 def tolerancjaElementu(element,tolerancja):
     if element.find('R') != -1 :
@@ -269,7 +314,7 @@ def slownikUszkodzenMonteCarlo(sygnal,elementy = uklad.elementy, badane_czestotl
         klaster = []
         for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarlo(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
+            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
             klaster.append( char_apl_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
@@ -278,13 +323,13 @@ def slownikUszkodzenMonteCarlo(sygnal,elementy = uklad.elementy, badane_czestotl
         klaster = []
         for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarlo(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
+            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
             klaster.append( char_apl_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
         
 
-    klaster = widmo_sygnalu * monteCarlo(czestotliwosci = badane_czestotliwosci) # punkt nominalny -> obszar tolerancji
+    klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci) # punkt nominalny -> obszar tolerancji
     słownikUszkodzen.setdefault('Nominalne',klaster)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
