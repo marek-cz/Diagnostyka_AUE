@@ -32,6 +32,13 @@ funkcjeUkladowe.os.chdir('Slownik_Multisin')
 for sygnatura in slownikUszkodzenMultisin:
     funkcjeUkladowe.np.save(sygnatura, slownikUszkodzenMultisin[sygnatura])
 
+ObszarTolerancji = funkcjeUkladowe.sygnaly.widmo(sygnal, funkcjeUkladowe.uklad.BADANE_CZESTOTLIWOSCI) * funkcjeUkladowe.monteCarloNormal()
+wartosc_srednia = ObszarTolerancji.mean(axis=0) # wektor!
+sigma = ObszarTolerancji.std(axis=0)            # wektor!
+
+#zapsianie wartosci sredniej i odchylenia std do plikow
+funkcjeUkladowe.np.save("../wartosc_srednia", wartosc_srednia)
+funkcjeUkladowe.np.save("../odchylenie_std", sigma)
 
 print("Slownik uszkodzen w folderze : \n",funkcjeUkladowe.os.getcwd())
 
