@@ -8,7 +8,7 @@ import GUI_backend as backend
 okno = tk.Tk()
 #### tytul okna
 okno.title( "Diagnostyka AUE" )
-okno.geometry("275x375")
+okno.geometry("370x410")
 okno.resizable(False, False)
 #------------------------------------------
 #           ZMIENNE GLOBALNE
@@ -27,19 +27,26 @@ for opcja in opcje:
 backend.os.chdir('slowniki_uszkodzen')
 uklady = []
 UKLAD_DOMYSLNY = 'HPF_MFB'
+licznik = 1
 #------------------------------------------
 #           FUNKCJE
 def funkcjaPrzycisku1():
     global czestotliwosc
     global opoznienie_ms
+    global licznik
     opcje = {} # slownik na opcje do wyslania do analizy-> bez koniecznosci tk
     czestotliwosc = int(entry_field_czestotliwosc.get() )# pobranie wartosci czestotliwosci
     opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
     for opcja in zmienneOpcji:
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
-    
-    backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get())
+    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get())
+    if not (licznik % 15) :
+        wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
+        licznik = 1
+    if wynik != '':
+        wynik_klasyfikacji.insert(tk.END, str(licznik)+' '+ wynik +"\n") # wstaw rezultat do pola wyniku
+        licznik += 1
     
 def zmianaCOM(*args): # function called when var changes
     # this is where you'd set another variable to var.get()
@@ -119,6 +126,9 @@ ramka_czestotliwosc.grid(column = 0, row = 0, sticky = 'w')
 ramka_opcje = tk.Frame(ramka_body, borderwidth = 1)
 ramka_opcje.grid(column = 0, row = 1, sticky = 'w')
 
+ramka_wynik = tk.Frame(ramka_body, borderwidth = 1)
+ramka_wynik.grid(column = 1, row = 1, sticky = 'w')
+
 #------------------------------------------------------------------------------------------------------
 # etykiety:
 label1 = tk.Label(ramka_head, text = "Diagnostyka AUE", font =('Arial', 20),padx=3,pady = 3)
@@ -131,6 +141,9 @@ label4.grid(column = 0, row = 1, sticky = 'w')
 
 label3 = tk.Label(ramka_opcje, text = "Opcje pomiaru : ", font =('Arial', 12))
 label3.grid(column = 0, row = 0)
+
+label4 = tk.Label(ramka_wynik, text = "Wynik klasyfikacji : ", font =('Arial', 12))
+label4.grid(column = 0, row = 0)
 #------------------------------------------------------------------------------------------------------
 # Entry fields
 entry_field_czestotliwosc = tk.Entry(ramka_czestotliwosc, width = 5)
@@ -152,6 +165,10 @@ for opcja in opcje: # dla kazdej opcji tworzymy przycisk
 # Przyciski
 button1 = tk.Button(ramka_body,text = "Testuj", bg = "orange", command = funkcjaPrzycisku1,padx = 5,pady = 5,font =('Arial', 12))
 button1.grid(column = 0, row = 3)
+#------------------------------------------------------------------------------------------------------
+# Pole tekstowe:
+wynik_klasyfikacji = tk.Text(master = ramka_wynik,height = 15, width = 20)
+wynik_klasyfikacji.grid(column = 0, row = 1)
 #------------------------------------------------------------------------------------------------------
 
 #### petla komunikatow - start GUI !
