@@ -36,9 +36,9 @@ os.replace(sciezka_src,sciezka_dest)
 
 import uklad
 
-plt.rc('axes', labelsize = 14)
-plt.rc('xtick', labelsize=12)
-plt.rc('ytick', labelsize=12)
+plt.rc('axes', labelsize = 16)
+plt.rc('xtick', labelsize=14)
+plt.rc('ytick', labelsize=14)
 
 
 PROG_GORNY_PROCENTY = 150
