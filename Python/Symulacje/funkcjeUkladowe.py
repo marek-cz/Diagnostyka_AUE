@@ -314,7 +314,7 @@ def slownikUszkodzenMonteCarlo(sygnal,elementy = uklad.elementy, badane_czestotl
         klaster = []
         for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
+            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC ) 
             klaster.append( char_apl_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
@@ -323,13 +323,13 @@ def slownikUszkodzenMonteCarlo(sygnal,elementy = uklad.elementy, badane_czestotl
         klaster = []
         for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci ) 
+            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC ) 
             klaster.append( char_apl_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
         
 
-    klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci) # punkt nominalny -> obszar tolerancji
+    klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC) # punkt nominalny -> obszar tolerancji
     słownikUszkodzen.setdefault('Nominalne',klaster)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -739,49 +739,34 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(slownik_uszkodzen,pomiar,
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
-def wygenerujMacierzDanychPCA(sygnal,elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC,tolerancja = uklad.TOLERANCJA,liczba_punktow = uklad.LICZBA_PUNKTOW):
+def wygenerujMacierzDanychPCA(sygnal, liczba_losowan, elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
     """
     GENERUJEMY MACIERZ DANYCH DO ANALIZY PCA
     KAZDA KOLUMNA MACIERZY ODPOWIADA JEDNEMU WEKTOROWI POMIAROWEMU
     """
-    elementy_modyfikacje = copy.deepcopy( elementy )
-    czestotliwosci = np.asarray(czestotliwosci)
-    liczba_czestotliwosci = czestotliwosci.shape[0]
-    delta = (150 - 50) / liczba_punktow
-    liczba_elementow = len(list(elementy.keys()))
+    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo(sygnal ,elementy, badane_czestotliwosci, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
+    Liczba_wymiarow = uklad.BADANE_CZESTOTLIWOSCI.shape[0] # liczba wymiarow w przestrzeni pomiarowej
+    X = np.array([])
+    for uszkodzenie in slownik_uszkodzen_MC:
+        if uszkodzenie == 'Nominalne':
+            
+            A = slownik_uszkodzen_MC[uszkodzenie]
+            A = A.reshape( (A.shape[0] * Liczba_wymiarow, ) )
+            X = np.concatenate( ( X, A ) )
+        else :
+            for punkt in slownik_uszkodzen_MC[uszkodzenie]:
+                
+                A = punkt
+                A = A.reshape( (A.shape[0] * Liczba_wymiarow, ) )
+                X = np.concatenate( ( X, A ) )
 
-    widmo_sygnalu = sygnaly.widmo(sygnal,czestotliwosci)
-    wartosci_uszkodzenia = np.arange(50,150+delta,delta) # uszkodzenia
+    dlugosc_rekordu = X.shape[0]
+    X = X.reshape( ( dlugosc_rekordu // Liczba_wymiarow, Liczba_wymiarow ) )
+    X = np.transpose(X)
     
-    liczba_wierszy = liczba_losowanMC * liczba_elementow * (wartosci_uszkodzenia.shape[0])
-    licznik = 0
-    
-    X_t = np.zeros( ( liczba_wierszy , liczba_czestotliwosci ) )
-    for uszkodzony_element in elementy:     # wybor elementu do uszkodzenia
-        for uszkodzenie in wartosci_uszkodzenia: # wszystkie mozliwe uszkodzenia DANEGO ELEMENTU
-            #if uszkodzenie == 10 : continue
-            for i in range(liczba_losowanMC): # MonteCarlo
-                for element in elementy_modyfikacje: # tolerancje
-                    if element.find('R') != -1 :
-                        # gdy element jest rezystorem
-                        L = 1 - tolerancja['R']
-                        H = 1 + tolerancja['R']
-                        elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
-                    elif element.find('C') != -1 :
-                        # gdy element jets kondensatorem :
-                        L = 1 - tolerancja['C']
-                        H = 1 + tolerancja['C']
-                        elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
-                    else :
-                        print("Czegoś nie uwzględniłeś! : ",element)
-                    #elementy_modyfikacje[element] = elementy[element] * (np.random.uniform(L,H))
-                elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * uszkodzenie / 100
-                l, m = uklad.transmitancja(elementy_modyfikacje)
-                X_t[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci) * widmo_sygnalu
-                licznik = licznik +  1
-    return np.transpose(X_t)    
+    return X # zwracamy macierz w ktorej kazda kolumna jest wektorem pomiarowym
 #------------------------------------------------------------------------------
-def PCA(X,prog_wariancji):
+def PCA_var(X,prog_wariancji):
     """
     GENARUJE MACIERZ TRANSFORMACJI LINIOWEJ
     """
@@ -797,6 +782,16 @@ def PCA(X,prog_wariancji):
         licznik += 1
     P_t = np.transpose(P) # transpozycja macierzy P
     macierz_przeksztalcenia = P_t[:licznik]
+    return macierz_przeksztalcenia
+#------------------------------------------------------------------------------
+def PCA(X,liczba_skladowych):
+    """
+    GENARUJE MACIERZ TRANSFORMACJI LINIOWEJ
+    """
+    C = np.cov(X) # macierz kowariancji macierzy X
+    P,S,Q_t = linalg.svd(C,full_matrices=True)
+    P_t = np.transpose(P) # transpozycja macierzy P
+    macierz_przeksztalcenia = P_t[:liczba_skladowych]
     return macierz_przeksztalcenia
 #------------------------------------------------------------------------------
 def slownikUszkodzenPCA(slownikUszkodzen, fi):
@@ -922,3 +917,11 @@ def odleglosci(slownikUszkodzen,pomiar):
             d_min_lista.append(d_min)
 
     return d_min_lista
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+def okrag(srodek, promien):
+    kat = np.linspace(0, 2 * np.pi, 628)
+    x1 = srodek[0] + promien * np.cos(kat)
+    x2 = srodek[1] + promien * np.sin(kat)
+
+    return x1, x2
+    
