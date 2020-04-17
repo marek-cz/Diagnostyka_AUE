@@ -35,7 +35,7 @@ C2 = 47 * n
 
 elementy = {'R1' : R1,'R2' : R2,'R3' : R3,'C1' : C1,'C2' : C2}
 
-TOLERANCJA = {'R' : 0.01, 'C' : 0.02}
+TOLERANCJA = {'R' : 0.01, 'C' : 0.10}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
@@ -49,6 +49,8 @@ LICZBA_PUNKTOW = 12
 epsilon = 0.01
 #------------------------------------------------------------------------------------
 # 5. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
-LICZBA_LOSOWAN_MC = 500
+LICZBA_LOSOWAN_MC = 10000
 # 6. PCA - PROG WARIANCJI - DO OKRESLENIA LICZBY SKLADOWYCH GLOWNYCH -  W PROCENTACH!
 PCA_PROG = 99 # [%]
+# 7. Liczba losowan do badania obszaru nominalnego
+LICZBA_LOSOWAN_PUNKT_NOMINALNY = 100000
