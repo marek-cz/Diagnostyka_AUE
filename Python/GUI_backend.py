@@ -345,13 +345,19 @@ def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt):
 
     r = abs(wartosc_srednia - punkt) # modul roznicy wektorow
 
-    a = r - 3*sigma # pomocniczy wektor
+    r_len = np.sqrt( np.dot(r,r))
+    sigma_len = np.sqrt( np.dot( sigma, sigma ))
 
-    for delta in a: 
-        if delta > 0 : # jezeli znajdziemy skladowa wektora poza obszarem 3 sigma, to punkt jest poza stanem nominalnym! -> a przynajmniej tak uwazam :)
-            return False
+    #a = r - 3*sigma # pomocniczy wektor
 
-    return True
+    #for delta in a: 
+    #    if delta > 0 : # jezeli znajdziemy skladowa wektora poza obszarem 3 sigma, to punkt jest poza stanem nominalnym! -> a przynajmniej tak uwazam :)
+    #        return False
+
+    #return True
+
+    if r_len >= 3 * sigma_len : return False
+    else : return True
     
 #-------------------------------------------------------------------------------------------
 
