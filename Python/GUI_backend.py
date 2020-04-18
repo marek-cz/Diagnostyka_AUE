@@ -57,6 +57,9 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     #print(opcje_pomiaru)
     
     slownik_uszkodzen = WczytajSlownikUszkodzenMultisin(nazwa_ukladu)
+    czestotliwosci_multisin = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywac dla danego ukladu!
+    czestotliwosci_sinc = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywane dla ukladu
+    
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
     if (opcje_pomiaru["Pomiar"]) :
@@ -70,11 +73,11 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
         
     if (opcje_pomiaru["Widmo na MCU"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            WidmoSinc(typ_pomiaru)
+            WidmoSinc(czestotliwosci_sinc, czestotliwosc)
         elif (typ_pomiaru == POMIAR_MULTISIN) :
-            WidmoMultiSin(typ_pomiaru)
+            WidmoMultiSin(czestotliwosci_multisin, czestotliwosc)
         else :
-            WidmoSinus(typ_pomiaru)
+            WidmoSinus(czestotliwosc)
 
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
@@ -168,30 +171,39 @@ def daneADCnaNapiecie(dane):
     napiecie = ( (dane - ADC_OFFSET )/ ADC_MAX ) * ADC_VREF
     return napiecie
 #-------------------------------------------------------------------------------------------
-def WidmoMCU(harmoniczna,typ_pomiaru):
-    ramka =  "W"+ chr(typ_pomiaru) + chr(harmoniczna)
-    NadajCOM(ramka)
-    dane = OdczytajPomiar()
-    dane = dane.strip('$')
-    dane = dane.split()
-    return dane
+def WidmoMultiSin(tablica_czestotliwosci, czestotliwosc_podstawowa):
+    indeksy = tablica_czestotliwosci // czestotliwosc_podstawowa
+    indeksy = indeksy.astype('uint16')
+
+    for k in indeksy:
+        k_string = uint16NaStringa(k)
+        ramka = 'F'+' '+ k_string + ' ' + TERMINATOR
+        print(ramka)
+        NadajCOM(ramka)
+        dane = OdczytajPomiar()
+        dane = dane.strip(TERMINATOR)
+        dane = dane.split()
+        widmo = funkcje.listUint2Float(dane)
+        print(k,". widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
 #-------------------------------------------------------------------------------------------
-def WidmoMultiSin(typ_pomiaru):
-    for i in range (10):
-        x = WidmoMCU(i+1,typ_pomiaru)
-        widmo = funkcje.listUint2Float(x)
-        print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
+def WidmoSinus(czestotliwosc_podstawowa):
+    f = np.array([czestotliwosc_podstawowa])
+    WidmoMultiSin(f,czestotliwosc_podstawowa)
 #-------------------------------------------------------------------------------------------
-def WidmoSinus(typ_pomiaru):
-    x = WidmoMCU(1,typ_pomiaru)
-    widmo = funkcje.listUint2Float(x)
-    print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
-#-------------------------------------------------------------------------------------------
-def WidmoSinc(typ_pomiaru):
-    for i in range (10):
-        x = WidmoMCU(i+1,typ_pomiaru)
-        widmo = funkcje.listUint2Float(x)
-        print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
+def WidmoSinc(tablica_czestotliwosci, czestotliwosc_podstawowa):
+    frq = tablica_czestotliwosci // czestotliwosc_podstawowa
+    frq = frq.astype('uint16')
+
+    for f in frq:
+        f_string = uint16NaStringa(f)
+        ramka = 'T'+' '+ f_string + ' ' + TERMINATOR
+        print(ramka)
+        NadajCOM(ramka)
+        dane = OdczytajPomiar()
+        dane = dane.strip(TERMINATOR)
+        dane = dane.split()
+        widmo = funkcje.listUint2Float(dane)
+        print(f,". widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
     if frq > max(F_MAX) : frq = max(F_MAX) # blad!!!!
