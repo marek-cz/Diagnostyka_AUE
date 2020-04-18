@@ -297,7 +297,7 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
 	for(uint8_t i = 0; i < liczbaElementow ;i++)
 	{
 		printf("%d",tablicaFloatToChar[i]);
-		udi_cdc_putc(' '); // rozdzielamy liczby spacjami
+		udi_cdc_putc(' '); // rozdzielamy czesci floata spacjami
 	}
 	udi_cdc_putc(ZNAK_TERMINACJI);
 }
@@ -411,10 +411,6 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 		case 'G' :	// Generacja
 			*przebieg = ramka_danych[GEN_PRZEBIEG_Bp];
 			*okres_timera = (ramka_danych[GEN_PER_MSB_Bp] << 8) | ramka_danych[GEN_PER_LSB_Bp];
-			/*if (*okres_timera < OKRES_TIMERA_MIN) // zabezpieczenie!
-			{
-				*okres_timera = OKRES_TIMERA_MIN;
-			}*/
 			*liczba_probek = ramka_danych[GEN_LICZB_PROBEK_Bp];
 			switch(*liczba_probek)
 			{
