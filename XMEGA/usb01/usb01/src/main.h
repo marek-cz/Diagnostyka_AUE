@@ -38,13 +38,8 @@
 #define SINUS_500_NR			0
 #define SINUS_250_NR			1
 #define SINUS_100_NR			2
-#define PILA_1000_NR			3
 #define MULTI_SIN_500_NR		4
-#define MULTI_SIN_250_NR		5
-#define MULTI_SIN_100_NR		6
 #define SINC_500_NR			7
-#define SINC_250_NR				8
-#define SINC_100_NR				9
 
 #ifdef KALIB_CZEST
 // makra wykorzystywane do kalibracji czestotliwosci

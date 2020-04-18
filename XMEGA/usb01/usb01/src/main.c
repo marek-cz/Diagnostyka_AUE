@@ -228,30 +228,10 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 		break;
 		case SINUS_100_NR :	memcpy_P(probki_sygnalu,sinus_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
-		/*case PILA_1000_NR :		memcpy_P(probki_sygnalu,pila_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;*/
 		case MULTI_SIN_500_NR : memcpy_P(probki_sygnalu,multi_sin_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;
-		case MULTI_SIN_250_NR : memcpy_P(probki_sygnalu,multi_sin_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;
-		case MULTI_SIN_100_NR : memcpy_P(probki_sygnalu,multi_sin_wave_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 		case SINC_500_NR :		memcpy_P(probki_sygnalu,sinc_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
-		case SINC_250_NR :		memcpy_P(probki_sygnalu,sinc_wave_250,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;
-		case SINC_100_NR :		memcpy_P(probki_sygnalu,sinc_wave_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-		break;
-		#ifdef KALIB_CZEST
-			case SQR_2_NR :			memcpy_P(probki_sygnalu,sqr_2,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-			break;
-			case SQR_10_NR :		memcpy_P(probki_sygnalu,sqr_10,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-			break;
-			case SQR_100_NR :		memcpy_P(probki_sygnalu,sqr_100,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-			break;
-			case SQR_1000_NR :		memcpy_P(probki_sygnalu,sqr_1000,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
-			break;
-		#endif
 		default :				memcpy_P(probki_sygnalu,multi_sin_wave_500,liczba_probek * sizeof(uint16_t)); // wgranie probek z pamieci FLASH
 		break;
 	}
@@ -265,32 +245,18 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	ADCA_CTRLA |= ADC_FLUSH_bm;				// wyczyszczenie potoku ADC
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE DMA DAC'A		*/
-	//TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
 	DMA_CH0_CTRLA &= ~(DMA_CH_ENABLE_bm);	// WYLACZENIE transmisji DMA DAC'a
 	//------------------------------------------------------------------------------
 	/*		WYSTAWIENIE WARTOSCI 0 NA DAC'A			*/
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
 	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
-	switch(liczba_probek)
-	{
-		case 500 :
-		WyborPrzebiegu(SINC_500_NR,liczba_probek);
-		break;
-		case 250 :
-		WyborPrzebiegu(SINC_250_NR,liczba_probek);
-		break;
-		case 100 :
-		WyborPrzebiegu(SINC_100_NR,liczba_probek);
-		break;
-		default :
-		break;
-	}
+	
+	WyborPrzebiegu(SINC_500_NR,liczba_probek);
 	DACB.CH0DATA = probki_sygnalu[0];	// wpisz wartosc do rejestru -> wystaw na wyjscie
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
-	//_delay_ms(10);
 	//------------------------------------------------------------------------------
 	/*		 CZYSZCZENIE TABLICY PROBEK		*/
 	for(uint16_t i = 0;i<liczba_probek;i++)
