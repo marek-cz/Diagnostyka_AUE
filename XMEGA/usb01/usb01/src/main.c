@@ -93,7 +93,6 @@ int main (void)
 	 uint8_t  przebieg = SINUS_500_NR;
 	 unsigned char ramka_danych_USB[ROZMIAR_RAMKI_USB_MAX];
 	 uint8_t licznik_znakow = 0;
-	 uint8_t licznik_terminacji = 0;
 	 //----------------------------------------------------
 	 //				FUNKCJE WYKONYWANE JEDNORAZOWO
 	 WlaczPeryferia();
@@ -111,22 +110,13 @@ int main (void)
 			  ramka_danych_USB[licznik_znakow] = ch;
 			  licznik_znakow++;
 			  if (ZNAK_TERMINACJI == ch)
-			  {
-				  licznik_terminacji++;
-				  if ( LICZBA_ZNAKOW_TERMINACJI ==licznik_terminacji) // odebrano cale polecenie
+			  {				  				  		  
+				  for(uint8_t i = 0; i < licznik_znakow;i++)
 				  {
-					  for(uint8_t i = 0; i < licznik_znakow;i++)
-					  {
-						  udi_cdc_putc(ramka_danych_USB[i]);
-					  }
-					  licznik_terminacji = 0;
-					  licznik_znakow = 0;
-					  analizaRamkiDanych(&okres_timera,&liczba_probek,&przebieg,ramka_danych_USB);
+					  udi_cdc_putc(ramka_danych_USB[i]);
 				  }
-			  }
-			  else
-			  {
-				  licznik_terminacji = 0;
+				  licznik_znakow = 0;
+				  analizaRamkiDanych(&okres_timera,&liczba_probek,&przebieg,ramka_danych_USB);
 			  }
 		  }
 		  
@@ -297,17 +287,9 @@ void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek)
 	for(int i = 0; i < liczbaProbek ;i++)
 	{
 		printf("%d",tablicaProbek[i]);
-		if ( !((i+1) % 20) )
-		{
-			udi_cdc_write_buf("\n\r",2);
-		}
-		else
-		{
-			udi_cdc_write_buf(" ",1);
-		}
+		udi_cdc_putc(' '); // rozdzielamy liczby spacjami
 	}
-	udi_cdc_write_buf("\n\r\n\r",4);
-	udi_cdc_write_buf(STRING_TERMINACJI,STRING_TERMINACJI_LEN);
+	udi_cdc_putc(ZNAK_TERMINACJI);
 }
 
 void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
@@ -315,10 +297,9 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
 	for(uint8_t i = 0; i < liczbaElementow ;i++)
 	{
 		printf("%d",tablicaFloatToChar[i]);
-		udi_cdc_write_buf(" ",1);
+		udi_cdc_putc(' '); // rozdzielamy liczby spacjami
 	}
-	udi_cdc_write_buf("\n\r\n\r",4);
-	udi_cdc_write_buf(STRING_TERMINACJI,STRING_TERMINACJI_LEN);
+	udi_cdc_putc(ZNAK_TERMINACJI);
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POZOSTALE
@@ -430,10 +411,10 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 		case 'G' :	// Generacja
 			*przebieg = ramka_danych[GEN_PRZEBIEG_Bp];
 			*okres_timera = (ramka_danych[GEN_PER_MSB_Bp] << 8) | ramka_danych[GEN_PER_LSB_Bp];
-			if (*okres_timera < OKRES_TIMERA_MIN) // zabezpieczenie!
+			/*if (*okres_timera < OKRES_TIMERA_MIN) // zabezpieczenie!
 			{
 				*okres_timera = OKRES_TIMERA_MIN;
-			}
+			}*/
 			*liczba_probek = ramka_danych[GEN_LICZB_PROBEK_Bp];
 			switch(*liczba_probek)
 			{

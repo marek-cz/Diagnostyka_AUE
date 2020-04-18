@@ -27,7 +27,7 @@
 #include "timery.h"
 //----------------------------------------------------
 //				MAKRA
-#define ROZMIAR_RAMKI_USB_MAX		17
+#define ROZMIAR_RAMKI_USB_MAX		13
 #define ROZMIAR_KOMENDY_MAX			20
 #define KONIEC_ZBIERANIA_PROBEK (1<<0)
 #define ODBIOR_KOMENDY			(1<<1)
@@ -63,9 +63,6 @@
 #define WIDMO_DFT					0
 #define WIDMO_TF					2
 #define ZNAK_TERMINACJI				'$'
-#define STRING_TERMINACJI			"$$$$"
-#define STRING_TERMINACJI_LEN		4
-#define LICZBA_ZNAKOW_TERMINACJI	4
 //_____________________________________________________
 #define LICZBA_PROBEK_500	0
 #define LICZBA_PROBEK_250	1
@@ -84,7 +81,7 @@
 #define ADC_MAX_F 4096.0
 //#define ADC_VREF 1.0
 #define ADC_OFFSET 250.0
-#define WIDMO_FLOAT_TO_UINT 100000
+//#define WIDMO_FLOAT_TO_UINT 100000
 //----------------------------------------------------
 //				PROTOTYPY FUNKCJI
 //----------------------------------------------------
