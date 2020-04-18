@@ -11,18 +11,19 @@ import datetime
 #-------------------------------------------------------------------------------------------
 # stale
 F_CPU = int(32e6) # 32 MHz - czestotliwosc taktowania rdzenia
+
 ADC_VREF = 1.0
 ADC_MAX = 4096
-ADC_OFFSET = 200
+ADC_OFFSET = 160
+
 POMIAR_FLAGI = {"POMIAR_OKRESOWY": 1 ,"POMIAR_IMPULSOWY": 2 }
 LICZBY_PROBEK = [500,250,100]
 F_MAX = [2000,4000,10000]
 LICZBA_PROBEK_f_MAX = [(1000,1000),(250,4000),(100,10000)]
-PRZEBIEGI = {"SINUS_500_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,
-             "MULTI_SIN_500_NR" : 4 "SINC_500_NR" : 7}
+PRZEBIEGI = {"SINUS_500_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,"MULTI_SIN_500_NR" : 4, "SINC_500_NR" : 7}
 KSZTALTY = ["SINUS","MULTI_SIN","SINC"]
 KONCOWKA_LICZBA_PROBEK = ["_500_NR","_250_NR","_100_NR"]
-TERMINATOR = b'\x24'
+TERMINATOR = '$'
 TERMINATOR_STRING = '$$$$'
 LICZBA_ZNAKOW_TERMINACJI = 4
 # opcje transmisji
@@ -30,8 +31,11 @@ BAUDRATE = 115200
 TIMEOUT = None
 POMIAR_MULTISIN  = 1
 POMIAR_IMPULSOWY = 2
-PER_MIN = 31
 
+PER_MIN = 31
+PER_MAX = (np.power(2,16) - 1).astype('uint16')
+PER_LICZBA_CYFR = 5 # 5 cyfr
+DELAY_MAX = PER_MAX # roboczo :)
 
 SCIEZKA_DO_SLOWNIKOW = 'C:\\Users\\Marek\\Desktop\\Studia\\STUDIA_MAGISTERSKIE\\Praca_Magisterska\\Programy\\Python\\slowniki_uszkodzen'
 #-------------------------------------------------------------------------------------------
@@ -56,8 +60,14 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
     if (opcje_pomiaru["Pomiar"]) :
-        if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(opoznienie)
-        else : wyniki_pomiaru = PomiarOkres(opoznienie)
+        delay = int(opoznienie)
+        if delay > DELAY_MAX : delay = DELAY_MAX
+        
+        if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(delay)
+        else : wyniki_pomiaru = PomiarOkres(delay)
+
+        
+        
     if (opcje_pomiaru["Widmo na MCU"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
             WidmoSinc(typ_pomiaru)
@@ -96,42 +106,66 @@ def ListaPortowCOM():
         result.append( porty[i][0] )
     return result
 #-------------------------------------------------------------------------------------------
-def Generacja(czestotliwosc,przebieg):
+
+def uint16NaStringa(uint16):
+    if uint16 > PER_MAX : uint16 = PER_MAX # bezpieczenstwo!
+    string = str(uint16)
+    while ( PER_LICZBA_CYFR - len(string) > 0):
+        string = '0' + string
     
+    return string
+
+#-------------------------------------------------------------------------------------------
+def Generacja(czestotliwosc,przebieg):
+    """
+    Przebieg -> indeks w tablicy sinus - 0, multisin - 1, sinc - 2
+    """
     global PER_INT
 
+    if (przebieg != 0 ) : # jezeli NIE generujemy sinusa
+        if czestotliwosc > F_MAX[0] : czestotliwosc = F_MAX[0] # zabezpieczenie, sinc i multisin do 2kHz -> 500 probek
+    
     PER_INT,liczba_probek = DobierzPER(czestotliwosc)
-    PER = PER_INT
+    PER_string = uint16NaStringa(PER_INT)
     przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
     przebieg = PRZEBIEGI[przebieg_string]
-    print("Rejestr timera : ",PER)
-    ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
+    #ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
+    ramka = 'G' + ' ' + str(przebieg) + ' ' + PER_string + ' ' + str(liczba_probek) + ' ' + TERMINATOR # pola sa ROZDZIELONE SPACJAMI!
+    print(ramka)
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
-    delay = int(delay)
-    ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
+    #delay = int(delay)
+    #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
+    delay_string = uint16NaStringa(delay)
+    ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
+    print(ramka)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
-    dane = dane.strip('$')
-    dane = dane.split()
     napiecie = daneADCnaNapiecie(dane)
     return napiecie
 #-------------------------------------------------------------------------------------------
 
 def PomiarImp(delay):
-    delay = int(delay)
-    ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
+    #delay = int(delay)
+    #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
+    delay_string = uint16NaStringa(delay)
+    ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
+    print(ramka)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
-    dane = dane.strip('$')
-    dane = dane.split()
     napiecie = daneADCnaNapiecie(dane)
     return napiecie
 #-------------------------------------------------------------------------------------------
 def daneADCnaNapiecie(dane):
+    """
+    dane - dane pomiarowe odebrane z XMEGI
+    są rozdzielone spacjami i na koncu wystepuje znak terminacji
+    """
+    dane = dane.strip(TERMINATOR) # usuwamy znak terminacji
+    dane = dane.split() # dzielimy dane po bialych znakach
     dane = np.asarray(dane).astype('float64')
-    napiecie = (dane/ ADC_MAX ) * ADC_VREF
+    napiecie = ( (dane - ADC_OFFSET )/ ADC_MAX ) * ADC_VREF
     return napiecie
 #-------------------------------------------------------------------------------------------
 def WidmoMCU(harmoniczna,typ_pomiaru):
@@ -160,41 +194,42 @@ def WidmoSinc(typ_pomiaru):
         print("WIDMO : ", widmo,"WIDMO [DB]", 20*np.log10(widmo))
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
-    if frq > max(F_MAX) : return -1 # blad!!!!
+    if frq > max(F_MAX) : frq = max(F_MAX) # blad!!!!
     for f_max in F_MAX:
         delta_f = f_max - frq
         indeks = F_MAX.index(f_max)
         if delta_f >=0 : break
     PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
     if PER < PER_MIN : PER = PER_MIN
+    if PER > PER_MAX : PER = PER_MAX
     return PER,indeks
 #-------------------------------------------------------------------------------------------
-def PER_na_2_znaki(PER):
-    PER = np.array([PER])
-    PER = PER.astype('uint16')
-    T1 = PER // 256 # STARSZY BAJT
-    T1 = chr(T1)
-    T2 = PER % 256  # MLODSZY BAJT
-    T2 = chr(T2)
-    PER_2_znaki = T1 + T2
-    return PER_2_znaki
+#def PER_na_2_znaki(PER):
+#    PER = np.array([PER])
+#    PER = PER.astype('uint16')
+#    T1 = PER // 256 # STARSZY BAJT
+#    T1 = chr(T1)
+#    T2 = PER % 256  # MLODSZY BAJT
+#    T2 = chr(T2)
+#    PER_2_znaki = T1 + T2
+#    return PER_2_znaki
 #-------------------------------------------------------------------------------------------
-def zamienNaZnaki(przebieg,PER,liczba_probek):
-    przebieg = chr(przebieg)
-    PER = PER_na_2_znaki(PER)
-    liczba_probek = chr(liczba_probek)
-
-    ciag_znakow = przebieg + PER + liczba_probek
-    
-    return ciag_znakow
-
+#def zamienNaZnaki(przebieg,PER,liczba_probek):
+#    przebieg = chr(przebieg)
+#    PER = PER_na_2_znaki(PER)
+#    liczba_probek = chr(liczba_probek)
+#
+#    ciag_znakow = przebieg + PER + liczba_probek
+#    
+#    return ciag_znakow
+#
 #-------------------------------------------------------------------------------------------
 def NadajCOM(ramka):
-    ramka = ramka + "$$$$"
-    ramka_byte = bytearray()
-    ramka_byte.extend(map(ord, ramka))
-    port_szeregowy.write(ramka_byte)
-    dane = port_szeregowy.read(len(ramka))
+    #ramka = ramka + TERMINATOR
+    #ramka_byte = bytearray()
+    #ramka_byte.extend(map(ord, ramka))
+    port_szeregowy.write(ramka.encode()) # nadajemy dane
+    dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
     global port_szeregowy
@@ -232,21 +267,17 @@ def ZamknijCOM(portCOM):
     #print("Zamkniecie portu ",portCOM)
 #-------------------------------------------------------------------------------------------
 def OdczytajPomiar():
-    licznik_znakow_terminacji = 0
+    """
+    Odbiera dane az do znaku terminacji
+    """
     dane = []
     while(True): # odbieramy dane
         znak = port_szeregowy.read(1)   # odczyt 1 bajtu
         dane.append( znak )
         if znak == TERMINATOR :
-            licznik_znakow_terminacji = licznik_znakow_terminacji + 1
-            if licznik_znakow_terminacji == LICZBA_ZNAKOW_TERMINACJI : #odebrano wszystkie dane
-                dane_string = ""
-                #print("Liczba odebranych Bajtow: ",len(dane))
-                for bajt in dane:
-                    dane_string += bajt.decode()
-                return dane_string
-        else :
-            licznik_znakow_terminacji = 0
+            for bajt in dane:
+                dane_string += bajt.decode() # dekoduje dane z binarnych na stringa
+            return dane_string
 #-------------------------------------------------------------------------------------------
 
 def WczytajSlownikUszkodzenMultisin(nazwa_ukladu):
