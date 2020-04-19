@@ -134,7 +134,7 @@ def Generacja(czestotliwosc,przebieg):
     przebieg = PRZEBIEGI[przebieg_string]
     #ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     ramka = 'G' + ' ' + str(przebieg) + ' ' + PER_string + ' ' + str(liczba_probek) + ' ' + TERMINATOR # pola sa ROZDZIELONE SPACJAMI!
-    print(ramka)
+    #print(ramka)
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
@@ -142,7 +142,7 @@ def PomiarOkres(delay):
     #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
     delay_string = uint16NaStringa(delay)
     ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
-    print(ramka)
+    #print(ramka)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     napiecie = daneADCnaNapiecie(dane)
@@ -154,7 +154,7 @@ def PomiarImp(delay):
     #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
     delay_string = uint16NaStringa(delay)
     ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
-    print(ramka)
+    #print(ramka)
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     napiecie = daneADCnaNapiecie(dane)
@@ -242,6 +242,7 @@ def NadajCOM(ramka):
     #ramka_byte.extend(map(ord, ramka))
     port_szeregowy.write(ramka.encode()) # nadajemy dane
     dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
+    print(dane.decode())
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
     global port_szeregowy
@@ -283,10 +284,11 @@ def OdczytajPomiar():
     Odbiera dane az do znaku terminacji
     """
     dane = []
+    dane_string = "" # pusty string
     while(True): # odbieramy dane
         znak = port_szeregowy.read(1)   # odczyt 1 bajtu
         dane.append( znak )
-        if znak == TERMINATOR :
+        if znak.decode() == TERMINATOR :
             for bajt in dane:
                 dane_string += bajt.decode() # dekoduje dane z binarnych na stringa
             return dane_string
