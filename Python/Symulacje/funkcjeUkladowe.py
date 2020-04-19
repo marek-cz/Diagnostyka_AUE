@@ -46,13 +46,15 @@ PROG_DOLNY_PROCENTY = 50
 ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY = 5
 WARTOSC_NOMINALNA_PROCENTY = 100
 
+LICZBA_PUNKTOW = 12 # liczba punktow na element
+
 F_CPU = 32e6
 LICZBA_PROBEK = 500
 
-PER = (F_CPU//(LICZBA_PROBEK*uklad.BADANE_CZESTOTLIWOSCI[0])) - 1 # wartosc rejestru PER
-F_ZNORMALIZOWANE = uklad.BADANE_CZESTOTLIWOSCI / uklad.BADANE_CZESTOTLIWOSCI[0]
-uklad.BADANE_CZESTOTLIWOSCI[0] = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
-uklad.BADANE_CZESTOTLIWOSCI = F_ZNORMALIZOWANE * uklad.BADANE_CZESTOTLIWOSCI[0]
+PER = (F_CPU//(LICZBA_PROBEK*uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0])) - 1 # wartosc rejestru PER
+F_ZNORMALIZOWANE = uklad.BADANE_CZESTOTLIWOSCI_MULTISIN / uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
+uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0] = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
+uklad.BADANE_CZESTOTLIWOSCI_MULTISIN = F_ZNORMALIZOWANE * uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
 
 #------------------------------------------------------------------------------
 def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
@@ -76,7 +78,7 @@ def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     return modul
 
 #------------------------------------------------------------------------------
-def monteCarloUniform(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
+def monteCarloUniform(czestotliwosci, elementy_wykluczone_z_losowania = [],elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
     """
     DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
     WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
@@ -124,7 +126,7 @@ def monteCarloUniform(elementy_wykluczone_z_losowania = [],elementy = uklad.elem
         licznik = licznik +  1
     return klaster
 #------------------------------------------------------------------------------
-def monteCarloNormal(elementy_wykluczone_z_losowania = [],elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
+def monteCarloNormal(czestotliwosci, elementy_wykluczone_z_losowania = [],elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
     """
     DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
     WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
@@ -181,7 +183,7 @@ def tolerancjaElementu(element,tolerancja):
         print("Czegoś nie uwzględniłeś! : ",element)
     return L,H   
 #------------------------------------------------------------------------------
-def analizaWorstCase(sygnal,elementy = uklad.elementy,czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA):
+def analizaWorstCase(czestotliwosci, sygnal,elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA):
     widmo_sygnalu = sygnaly.widmo(sygnal,czestotliwosci)
     elementy_modyfikacje = copy.deepcopy( elementy )
     wynik = np.array([])
@@ -257,7 +259,7 @@ def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
     return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
 
 #------------------------------------------------------------------------------
-def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
+def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
 
@@ -302,7 +304,7 @@ def slownikUszkodzen(sygnal,elementy = uklad.elementy, badane_czestotliwosci = u
     return słownikUszkodzen
 
 #------------------------------------------------------------------------------
-def slownikUszkodzenMonteCarlo(sygnal,elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
+def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal ,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
 
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
@@ -365,40 +367,6 @@ def LaczenieWyrazenWSlowniku(slownik):
             if(klucz.find(element1) != -1): dodaj = False
         if (dodaj) : nowy_slownik.setdefault(element1,slownik[element1])
     return nowy_slownik
-#------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
-def LaczenieSygnatur(slownik):
-    s1 = copy.deepcopy(slownik)
-    for i in range (20):
-        s1 = LaczenieWyrazenWSlowniku(s1)
-
-    sygnatury_do_polaczenia = []
-    
-    for e1 in s1:
-        for e2 in s1:
-            #print(e1," | ",e2)
-            if (e1 == 'Nominalne') or (e2 == 'Nominalne') : continue
-            if (e1 == e2) : continue
-            #if (e1[:1] == e2[:1]) : continue # sprawdzanie tego samego elementu "w druga strone"
-            #print(e1,' | ',e2)
-            for w1 in s1[e1]:
-                for w2 in s1[e2]:
-                    delta = abs(w1 - w2)
-                    a = np.sqrt(np.dot(delta,delta))
-                    #print(e1,' | ',e2,'delta : ',a)
-                    if (a < uklad.epsilon):
-                        if not( ( (e1,e2) in sygnatury_do_polaczenia ) or ((e2,e1) in sygnatury_do_polaczenia ) ) :
-                            sygnatury_do_polaczenia.append((e1,e2))
-
-    print(sygnatury_do_polaczenia)
-
-    for sygnatura in sygnatury_do_polaczenia:
-        s1.setdefault(sygnatura[0]+sygnatura[1],s1[sygnatura[0]])
-        del(s1[sygnatura[0]])
-        del(s1[sygnatura[1]])
-                      
-    return s1
-#------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
 def PolaczDwieSygnatury(slownik):
@@ -419,7 +387,7 @@ def PolaczDwieSygnatury(slownik):
                       
     return s1
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen):
     #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
@@ -428,12 +396,14 @@ def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen,badane_czestotliwosci = ukl
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
         plt.plot(A[0],A[1],'o-', label = uszkodzenie)
-    plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
-    plt.legend()
+    plt.xlabel('PCA 1', fontsize=20)
+    plt.ylabel('PCA 2', fontsize=20)
+    plt.axis('equal')
+    plt.grid()
+    plt.legend(prop={'size': 22})
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
+def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(badane_czestotliwosci, slownik_uszkodzen,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
 
@@ -487,7 +457,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen,elementy = uklad
     plt.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(slownik_uszkodzen,pomiar,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
+def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(badane_czestotliwosci, slownik_uszkodzen,pomiar,elementy = uklad.elementy,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
 
@@ -545,7 +515,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(slownik_uszkodzen,pomiar,el
     plt.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,worst_case = np.array([[0,0]]),badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(badane_czestotliwosci, slownik_uszkodzen,pomiar,worst_case = np.array([[0,0]])  ):
     #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
@@ -570,7 +540,7 @@ def wyrysujKrzyweIdentyfikacyjne2D_i_pomiar(slownik_uszkodzen,pomiar,worst_case 
     plt.show()
  
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D_oszarNominalny(slownik_uszkodzen,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne3D_oszarNominalny(slownik_uszkodzen,badane_czestotliwosci  ):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -592,7 +562,7 @@ def wyrysujKrzyweIdentyfikacyjne3D_oszarNominalny(slownik_uszkodzen,badane_czest
     ax.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen  ):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -603,14 +573,15 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen,badane_czestotliwosci = ukl
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
         ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
-    ax.set_xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    ax.set_ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
-    ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
-    ax.legend()
+    ax.set_xlabel('PCA 1', fontsize=20)
+    ax.set_ylabel('PCA 2', fontsize=20)
+    ax.set_zlabel('PCA 3', fontsize=20)
+    ax.legend(prop={'size': 22})
+    plt.grid()
     plt.show()
 
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D_i_pomiar(slownik_uszkodzen,pomiar,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKrzyweIdentyfikacyjne3D_i_pomiar(slownik_uszkodzen,pomiar,badane_czestotliwosci  ):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
@@ -631,7 +602,7 @@ def wyrysujKrzyweIdentyfikacyjne3D_i_pomiar(slownik_uszkodzen,pomiar,badane_czes
     plt.show()
 
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(slownik_uszkodzen,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
+def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(badane_czestotliwosci, slownik_uszkodzen,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
     #plt.clf()
 
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
@@ -682,7 +653,7 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(slownik_uszkodzen,elementy = uklad
     ax.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(slownik_uszkodzen,pomiar,elementy = uklad.elementy,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
+def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(badane_czestotliwosci, slownik_uszkodzen,pomiar,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
     #plt.clf()
 
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
@@ -739,13 +710,13 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(slownik_uszkodzen,pomiar,
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
-def wygenerujMacierzDanychPCA(sygnal, liczba_losowan, elementy = uklad.elementy, badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI,liczba_punktow_na_element = uklad.LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
+def wygenerujMacierzDanychPCA(badane_czestotliwosci, sygnal, liczba_losowan, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
     """
     GENERUJEMY MACIERZ DANYCH DO ANALIZY PCA
     KAZDA KOLUMNA MACIERZY ODPOWIADA JEDNEMU WEKTOROWI POMIAROWEMU
     """
-    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo(sygnal ,elementy, badane_czestotliwosci, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
-    Liczba_wymiarow = uklad.BADANE_CZESTOTLIWOSCI.shape[0] # liczba wymiarow w przestrzeni pomiarowej
+    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo( badane_czestotliwosci, sygnal ,elementy, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
+    Liczba_wymiarow  =  badane_czestotliwosci.shape[0] # liczba wymiarow w przestrzeni pomiarowej
     X = np.array([])
     for uszkodzenie in slownik_uszkodzen_MC:
         if uszkodzenie == 'Nominalne':
@@ -838,7 +809,7 @@ def macierzKowariancjiEstymata(macierz_danych):
 
     return Cx, mx
 #------------------------------------------------------------------------------------------------------------------------------------------------------------
-def wyrysujKlasterDanych3D(dane,badane_czestotliwosci = uklad.BADANE_CZESTOTLIWOSCI):
+def wyrysujKlasterDanych3D(dane,badane_czestotliwosci  ):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
