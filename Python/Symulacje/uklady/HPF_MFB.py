@@ -28,29 +28,21 @@ n = 1e-9
 R1 = 100 * k
 R2 = 10 * k
 
-C1 =  47 * n #45.37 * n
-C2 =  47 * n #49.77 * n
-C3 =  47 * n #45.47 * n
+C1 =  45.37 * n
+C2 =  49.77 * n
+C3 =  45.47 * n
 
 
 elementy = {'R1' : R1,'R2' : R2,'C1' : C1,'C2' : C2,'C3' : C3}
 
-TOLERANCJA = {'R' : 0.01, 'C' : 0.10}
+TOLERANCJA = {'R' : 0.01, 'C' : 0.04}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
-BADANE_CZESTOTLIWOSCI = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 #np.array([50,100,150])
-#BADANE_CZESTOTLIWOSCI = np.array([100,150])
+BADANE_CZESTOTLIWOSCI_MULTISIN = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # czestotliwosci dla pobudzenia wieloharmonicznego
+BADANE_CZESTOTLIWOSCI_SINC = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # czestotliwosci dla pobudzenia SINC
 #------------------------------------------------------------------------------------
-# 3. LICZBA PUNKTOW NA ELEMENT
-LICZBA_PUNKTOW = 12
-#------------------------------------------------------------------------------------
-# 4. Epsilon
-epsilon = 0.01
-#------------------------------------------------------------------------------------
-# 5. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
+# 3. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
 LICZBA_LOSOWAN_MC = 10000
-# 6. PCA - PROG WARIANCJI - DO OKRESLENIA LICZBY SKLADOWYCH GLOWNYCH -  W PROCENTACH!
-PCA_PROG = 99 # [%]
-# 7. Liczba losowan do badania obszaru nominalnego
+# 6. Liczba losowan do badania obszaru nominalnego
 LICZBA_LOSOWAN_PUNKT_NOMINALNY = 100000
