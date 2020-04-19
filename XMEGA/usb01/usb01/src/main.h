@@ -39,29 +39,25 @@
 #define SINUS_250_NR			1
 #define SINUS_100_NR			2
 #define MULTI_SIN_500_NR		4
-#define SINC_500_NR			7
+#define SINC_500_NR				7
 
-#ifdef KALIB_CZEST
-// makra wykorzystywane do kalibracji czestotliwosci
-#define SQR_2_NR	100
-#define SQR_10_NR	101
-#define SQR_100_NR	102
-#define SQR_1000_NR 103
-#endif
 //			MAKRA OPISUJACE POLECENIA W RAMCE
 #define POLECENIE_POZYCJA			0
-#define GENERACJA					'G'
-#define GEN_PRZEBIEG_Bp				1
-#define GEN_PER_MSB_Bp				2
-#define GEN_PER_LSB_Bp				3
-#define GEN_LICZB_PROBEK_Bp			4
-#define POM_FLAGI_Bp				1
-#define POM_DELAY_Bp				2
-#define WIDMO_K_Bp					2
-#define WIDMO_TYP_Bp				1
-#define WIDMO_SINC_CZEST_Bp			2
-#define WIDMO_DFT					0
-#define WIDMO_TF					2
+#define MAX_LICZBA_CYFR				5
+//----------------------------------
+#define GEN_PRZEBIEG_Bp				2
+#define GEN_PER_START_Bp			4
+#define GEN_LICZB_PROBEK_Bp			10
+//-----------------------------------
+#define POM_TYP_Bp					2
+#define POM_DELAY_Bp				4
+#define POMIAR_IMPULSOWY			(1<<1)
+#define POMIAR_OKRESOWY				(1<<0)
+//-------------------------------------
+#define DFT							'F'
+#define TRANSFORMATA_FOURIERA		'T'
+#define WIDMO_CZESTOTLIWOSC_Bp		2
+//-------------------------------------
 #define ZNAK_TERMINACJI				'$'
 //_____________________________________________________
 #define LICZBA_PROBEK_500	0
@@ -81,7 +77,6 @@
 #define ADC_MAX_F 4096.0
 //#define ADC_VREF 1.0
 #define ADC_OFFSET 250.0
-//#define WIDMO_FLOAT_TO_UINT 100000
 //----------------------------------------------------
 //				PROTOTYPY FUNKCJI
 //----------------------------------------------------
@@ -102,6 +97,8 @@ void delayTCC1(uint16_t ms);
 //				FUNKCJE KONWERSJI
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
 void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
+uint8_t znakNaCyfre( unsigned char znak);
+uint16_t znakiNaLiczbe( unsigned char tablica_znakow[] ,uint8_t start_ind);
 //----------------------------------------------------
 //				FUNKCJE POZOSTALE
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC

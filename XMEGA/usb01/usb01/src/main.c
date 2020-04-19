@@ -138,8 +138,8 @@ void Init(void)
 	SelectPLL(OSC_PLLSRC_RC2M_gc, 16);	// 32 MHz na wyjsciu PLL
 	CPU_CCP = CCP_IOREG_gc;				// odblokowanie zmiany konfiguracji zegara
 	CLK_CTRL = CLK_SCLKSEL_PLL_gc;		// taktowanie procesora 32 MHz
-	#undef  F_CPU
-	#define F_CPU 32000000UL
+	//#undef  F_CPU
+	//#define F_CPU 32000000UL
 	
 	// wczytanie danych kalibracyjnych z pamieci nieulotnej:
 	ADCA.CALL = ReadCalibrationByte(offsetof(NVM_PROD_SIGNATURES_t, ADCACAL0)); // blad nieliniowosci ADC
@@ -150,8 +150,8 @@ void Init(void)
 	sei();	// globalne odblokowanie przerwan
 	DMA_init();
 	DAC_init();
-	//ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc); // 256A3Bu
-	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
+	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc); // 256A3Bu
+	//ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
 	TCC0_Init(31); // Timer taktujacy DAC i ADC
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 }
@@ -301,6 +301,39 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
 	}
 	udi_cdc_putc(ZNAK_TERMINACJI);
 }
+
+uint8_t znakNaCyfre(unsigned char znak)
+{
+	switch (znak)
+	{
+		case '0' : return 0;
+		case '1' : return 1;
+		case '2' : return 2;
+		case '3' : return 3;
+		case '4' : return 4;
+		case '5' : return 5;
+		case '6' : return 6;
+		case '7' : return 7;
+		case '8' : return 8;
+		case '9' : return 9;
+		default : return 0;
+	}
+}
+
+uint16_t znakiNaLiczbe( unsigned char tablica_znakow[],uint8_t start_ind)
+{
+	uint8_t i;
+	uint8_t cyfra = 0;
+	uint16_t liczba=0;
+	uint16_t potega = 10000;
+	for(i = start_ind ; i < start_ind + MAX_LICZBA_CYFR ; i++)
+	{
+		cyfra = znakNaCyfre(tablica_znakow[i]);
+		liczba+=cyfra*potega;
+		potega/=10;
+	}
+	return liczba;
+}
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POZOSTALE
 
@@ -381,7 +414,7 @@ bool OSC_wait_for_rdy(uint8_t clk)
 	uint8_t czas=255;
 	while ((!(OSC.STATUS & clk)) && (--czas)) // Czekaj na ustabilizowanie siê generatora
 	//_delay_ms(1);
-	_delay_ms(16); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz ...
+	_delay_ms(16); 
 	return czas;   //false jeœli generator nie wystartowa³, true jeœli jest ok
 }
 
@@ -395,10 +428,8 @@ void SelectPLL(OSC_PLLSRC_t src, uint8_t mult)
 //--------------------------------------------------------------------------------------------------
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[])
 {
-	uint8_t flagi_pomiaru;
-	uint8_t harmoniczna;
-	uint8_t typ_transformaty;
-	uint8_t czestotliwosc;
+	uint8_t typ_pomiaru;
+	uint8_t czestotliwosc; // w zaleznosci od typu transformaty albo oznacza prazek widma k X[k], albo konkretna czestotliwosc X(f)
 	union
 	{
 		float widmo;
@@ -409,9 +440,9 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
 		case 'G' :	// Generacja
-			*przebieg = ramka_danych[GEN_PRZEBIEG_Bp];
-			*okres_timera = (ramka_danych[GEN_PER_MSB_Bp] << 8) | ramka_danych[GEN_PER_LSB_Bp];
-			*liczba_probek = ramka_danych[GEN_LICZB_PROBEK_Bp];
+			*przebieg = znakNaCyfre(ramka_danych[GEN_PRZEBIEG_Bp]);
+			*okres_timera = znakiNaLiczbe(ramka_danych, GEN_PER_START_Bp);
+			*liczba_probek = znakNaCyfre(ramka_danych[GEN_LICZB_PROBEK_Bp]);
 			switch(*liczba_probek)
 			{
 				case LICZBA_PROBEK_500 :	*liczba_probek = 500;
@@ -426,31 +457,25 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
 			break;
 		case 'P' : // Pomiar
-			flagi_pomiaru = ramka_danych[POM_FLAGI_Bp]; // odczyt flag pomiaru
-			if (flagi_pomiaru & 0x02)
+			typ_pomiaru = ramka_danych[POM_TYP_Bp]; // odczyt flag pomiaru
+			if (typ_pomiaru & POMIAR_IMPULSOWY)
 			{
-				PomiarImpulsowy(*liczba_probek,ramka_danych[POM_DELAY_Bp]);
+				PomiarImpulsowy(*liczba_probek, znakiNaLiczbe(ramka_danych, POM_DELAY_Bp) );
 			}
 			else
 			{
-				PomiarOkresowyADC(*liczba_probek,ramka_danych[POM_DELAY_Bp]);	
+				PomiarOkresowyADC(*liczba_probek,znakiNaLiczbe(ramka_danych, POM_DELAY_Bp));	
 			}
 			break;
-		case 'W' : // Widmo
-			typ_transformaty = ramka_danych[WIDMO_TYP_Bp]; // Transformata Fouriera czy DFT
-			if (WIDMO_TF == typ_transformaty)
-			{
-				// TRANSFORMATA FOURIERA
-				czestotliwosc = ramka_danych[WIDMO_SINC_CZEST_Bp];
-				unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
-				NadajWidmo(unia_widmo.c,sizeof(float));
-			}
-			else
-			{
-				harmoniczna = ramka_danych[WIDMO_K_Bp]; // odczyt ktora harmoniczna mamy wyliczyc
-				unia_widmo.widmo = oblicz_DFT(harmoniczna,*liczba_probek,probki_pomiaru);
-				NadajWidmo(unia_widmo.c,sizeof(float));
-			}
+		case DFT: // OBLICZ DFT
+			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
+			unia_widmo.widmo = oblicz_DFT(czestotliwosc,*liczba_probek,probki_pomiaru);
+			NadajWidmo(unia_widmo.c,sizeof(float));
+			break;
+		case TRANSFORMATA_FOURIERA:// oblicz TF
+			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
+			unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
+			NadajWidmo(unia_widmo.c,sizeof(float));
 			break;
 		default :	break;
 	}
