@@ -37,7 +37,10 @@ PER_MAX = (np.power(2,16) - 1).astype('uint16')
 PER_LICZBA_CYFR = 5 # 5 cyfr
 DELAY_MAX = PER_MAX # roboczo :)
 
-SCIEZKA_DO_SLOWNIKOW = 'C:\\Users\\Marek\\Desktop\\Studia\\STUDIA_MAGISTERSKIE\\Praca_Magisterska\\Programy\\Python\\slowniki_uszkodzen'
+os.chdir('slowniki_uszkodzen')
+SCIEZKA_DO_SLOWNIKOW = os.getcwd() # zapamietanie sciezki do slownikow uszkodzen
+os.chdir('..')
+
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
@@ -45,18 +48,23 @@ PER_INT = 31
 wyniki_pomiaru = [1,2,3,4,5,6,7,11,9]
 widmoPC = np.array([])
 widmoMCU = np.array([])
-slownik_uszkodzen = {} # zmienna globalna zawierajaca slownik uszkodzen
+slownik_uszkodzen_PCA2 = {} # zmienna globalna zawierajaca slownik uszkodzen
+slownik_uszkodzen_PCA3 = {} # zmienna globalna zawierajaca slownik uszkodzen
+czestotliwosci_multisin = np.array([])
+czestotliwosci_sinc = np.array([])
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa_ukladu):
     global wyniki_pomiaru
     global slownik_uszkodzen
     global widmoPC
+    global czestotliwosci_multisin
+    global czestotliwosci_sinc
 
     wynik = ''
     #print(opcje_pomiaru)
     
-    slownik_uszkodzen = WczytajSlownikUszkodzenMultisin(nazwa_ukladu)
+    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu)
     czestotliwosci_multisin = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywac dla danego ukladu!
     czestotliwosci_sinc = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywane dla ukladu
     
@@ -82,10 +90,12 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
         x = widmoPC[1:11] # na razie tak :)
+        fi = wczytajMacierzPCA(nazwa_ukladu)
+        x = np.matmul(fi, x)
         if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x) :
             wynik = 'Nominalne'
         else :
-            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen,x)
+            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
             wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
             
     if (opcje_pomiaru["Wyrysuj dane"]) :
@@ -134,7 +144,7 @@ def Generacja(czestotliwosc,przebieg):
     przebieg = PRZEBIEGI[przebieg_string]
     #ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     ramka = 'G' + ' ' + str(przebieg) + ' ' + PER_string + ' ' + str(liczba_probek) + ' ' + TERMINATOR # pola sa ROZDZIELONE SPACJAMI!
-    #print(ramka)
+    print(ramka)
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
@@ -216,33 +226,10 @@ def DobierzPER(frq):
     if PER > PER_MAX : PER = PER_MAX
     return PER,indeks
 #-------------------------------------------------------------------------------------------
-#def PER_na_2_znaki(PER):
-#    PER = np.array([PER])
-#    PER = PER.astype('uint16')
-#    T1 = PER // 256 # STARSZY BAJT
-#    T1 = chr(T1)
-#    T2 = PER % 256  # MLODSZY BAJT
-#    T2 = chr(T2)
-#    PER_2_znaki = T1 + T2
-#    return PER_2_znaki
-#-------------------------------------------------------------------------------------------
-#def zamienNaZnaki(przebieg,PER,liczba_probek):
-#    przebieg = chr(przebieg)
-#    PER = PER_na_2_znaki(PER)
-#    liczba_probek = chr(liczba_probek)
-#
-#    ciag_znakow = przebieg + PER + liczba_probek
-#    
-#    return ciag_znakow
-#
-#-------------------------------------------------------------------------------------------
+
 def NadajCOM(ramka):
-    #ramka = ramka + TERMINATOR
-    #ramka_byte = bytearray()
-    #ramka_byte.extend(map(ord, ramka))
     port_szeregowy.write(ramka.encode()) # nadajemy dane
     dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
-    print(dane.decode())
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
     global port_szeregowy
@@ -284,34 +271,55 @@ def OdczytajPomiar():
     Odbiera dane az do znaku terminacji
     """
     dane = []
-    dane_string = "" # pusty string
     while(True): # odbieramy dane
         znak = port_szeregowy.read(1)   # odczyt 1 bajtu
         dane.append( znak )
-        if znak.decode() == TERMINATOR :
+        if znak == TERMINATOR :
             for bajt in dane:
                 dane_string += bajt.decode() # dekoduje dane z binarnych na stringa
             return dane_string
 #-------------------------------------------------------------------------------------------
 
-def WczytajSlownikUszkodzenMultisin(nazwa_ukladu):
+def WczytajSlownikiUszkodzenMultisin(nazwa_ukladu):
 
-    slownik = {}
+    slownik_PCA2 = {}
+    slownik_PCA3 = {}
     
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    # wejscie do katalogu z wybramym ukladem
-    os.chdir(nazwa_ukladu+'/Slownik_Multisin')
+    # wejscie do katalogu ze slownikiem PCA 2 skladowe
+    os.chdir(nazwa_ukladu+'/Slowniki_Multisin/Slownik_PCA_2')
     lista_plikow = os.listdir() # nazwy plikow oznaczaja sygnatury w slowniku
     for nazwa_pliku in lista_plikow:
         indeks_kropki = nazwa_pliku.find('.')
         sygnatura = nazwa_pliku[:indeks_kropki]
-        slownik[sygnatura] = np.load(nazwa_pliku) # do slownika mozna dodawac nowe elementy w ten sposob
+        slownik_PCA2[sygnatura] = np.load(nazwa_pliku) # do slownika mozna dodawac nowe elementy w ten sposob
+
+    os.chdir('../Slownik_PCA_3')
+
+    lista_plikow = os.listdir() # nazwy plikow oznaczaja sygnatury w slowniku
+    for nazwa_pliku in lista_plikow:
+        indeks_kropki = nazwa_pliku.find('.')
+        sygnatura = nazwa_pliku[:indeks_kropki]
+        slownik_PCA3[sygnatura] = np.load(nazwa_pliku) # do slownika mozna dodawac nowe elementy w ten sposob
     
     # powrot do lokalizacji pierwotnej
     os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    return slownik
+    
+    return slownik_PCA2, slownik_PCA3
+#-------------------------------------------------------------------------------------------
+def wczytajMacierzPCA(nazwa_ukladu):
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    # wejscie do katalogu ze slownikiem PCA 2 skladowe
+    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+
+    fi = np.load('PCA_3_SKL.npy')
+
+    return fi
+    
 #-------------------------------------------------------------------------------------------
 
 def ObliczWidmo(typ_widma,dane,PER):
@@ -374,33 +382,25 @@ def odlegloscPuntuOdSlownika(slownik, punkt):
 #-------------------------------------------------------------------------------------------
 def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt):
     """
-    Sprawdzenie czy roznica miedzy punktem pomiarowym, a
-    wyznaczonym w symulajci centrum jest na akzdej pozycji
-    mniejsza niz 3 sigma
+    Sprawdzenie czy odleglosc Mahalanobisa miedzy punktem pomiarowym, a
+    wyznaczonym w symulajci centrum jets mniejsza od wartosci granicznej
     """
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    os.chdir(nazwa_ukladu)
+    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
 
-    wartosc_srednia = np.load('wartosc_srednia.npy')
-    sigma = np.load('odchylenie_std.npy')
+    wartosc_srednia = np.load('srodek_PCA_3_skladowe.npy')
+    C1 = np.load('macierz_skalujaca_PCA_3_skladowe.npy')
+    s_graniczna = np.load('graniczna_odleglosc_PCA_3_skladowe.npy')
 
-    r = abs(wartosc_srednia - punkt) # modul roznicy wektorow
+    s = odlegloscMahalanobisa(punkt, wartosc_srednia, C1)
 
-    r_len = np.sqrt( np.dot(r,r))
-    sigma_len = np.sqrt( np.dot( sigma, sigma ))
+    os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
+    
+    if ( s < s_graniczna ) : return True
+    else : return False
 
-    #a = r - 3*sigma # pomocniczy wektor
-
-    #for delta in a: 
-    #    if delta > 0 : # jezeli znajdziemy skladowa wektora poza obszarem 3 sigma, to punkt jest poza stanem nominalnym! -> a przynajmniej tak uwazam :)
-    #        return False
-
-    #return True
-
-    if r_len >= 3 * sigma_len : return False
-    else : return True
     
 #-------------------------------------------------------------------------------------------
 
@@ -413,4 +413,16 @@ def KlasyfikacjaOdleglosc(slownik_odleglosci):
     print("___________________________________________________")
     print("\n")
 
-    return etykieta 
+    return etykieta
+#-------------------------------------------------------------------------------------------
+def odlegloscMahalanobisa(x,y,C):
+    """
+    Odleglosc Mahalanobisa miedzy punktami x i y
+    z zastosowaniem macierzy skalujacej C
+    """
+    x = x.reshape((x.shape[0],1)) # wektor kolumnowy
+    y = y.reshape((y.shape[0],1)) # wektor kolumnowy
+    d = x - y
+    s = np.matmul(np.transpose(d), C)
+    s = np.matmul( s , d)
+    return np.sqrt(s)
