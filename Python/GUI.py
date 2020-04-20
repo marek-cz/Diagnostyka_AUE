@@ -19,10 +19,11 @@ wyborUkladu = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
 czestotliwosc = 1000
 opoznienie_ms = 10
-opcje = ["Generacja","Pomiar","Wyrysuj dane","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
+opcje = ["Generacja","Pomiar","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
 zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
+
 
 backend.os.chdir('slowniki_uszkodzen')
 uklady = []
@@ -74,6 +75,15 @@ def WypiszPortyCOM():
 def ZamknijProgram():
     okno.destroy()
 
+def WyrysujDane():
+    backend.WyrysujDane()
+
+def WyrysujSlownik():
+    backend.WyrysujSlownik(wyborUkladu.get())
+
+def WyrysujPomiary():
+    backend.WyrysujPomiary2D(wyborUkladu.get())
+
 def WypiszUklady():
     global uklady
     for uklad in uklady:
@@ -89,6 +99,9 @@ def WypiszUklady():
 menu1 = tk.Menu(okno)
 # nizsze warstwy menu:
 program_menu = tk.Menu(menu1, tearoff = 0) # tearoff = 0 -> menu sie nie "odrywa"
+program_menu.add_command(label = "Wyrysuj pomiar", command = WyrysujDane) # Rysowanie
+program_menu.add_command(label = "Wyrysuj krzywe identyfikacyjne", command = WyrysujSlownik) # Rysowanie
+program_menu.add_command(label = "Wyrysuj pomiary 2D", command = WyrysujPomiary ) # Rysowanie
 program_menu.add_separator()
 program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
 
@@ -147,11 +160,11 @@ label4.grid(column = 0, row = 0)
 #------------------------------------------------------------------------------------------------------
 # Entry fields
 entry_field_czestotliwosc = tk.Entry(ramka_czestotliwosc, width = 5)
-entry_field_czestotliwosc.insert(0,"1000")
+entry_field_czestotliwosc.insert(0,"100")
 entry_field_czestotliwosc.grid(column = 1, row = 0)
 
 entry_field_opoznienie = tk.Entry(ramka_czestotliwosc, width = 5)
-entry_field_opoznienie.insert(0,"10")
+entry_field_opoznienie.insert(0,"100")
 entry_field_opoznienie.grid(column = 1, row = 1)
 #------------------------------------------------------------------------------------------------------
 # Chechbox'y:
@@ -163,8 +176,9 @@ for opcja in opcje: # dla kazdej opcji tworzymy przycisk
 
 #------------------------------------------------------------------------------------------------------
 # Przyciski
-button1 = tk.Button(ramka_body,text = "Testuj", bg = "orange", command = funkcjaPrzycisku1,padx = 5,pady = 5,font =('Arial', 12))
-button1.grid(column = 0, row = 3)
+#button1 = tk.Button(ramka_body,text = "Testuj", bg = "orange", command = funkcjaPrzycisku1,padx = 5,pady = 5,font =('Arial', 12))
+button1 = tk.Button(ramka_opcje,text = "Wykonaj", bg = "orange", command = funkcjaPrzycisku1,padx = 5,pady = 5,font =('Arial', 12))
+button1.grid(column = 0, row = wiersz+1)
 #------------------------------------------------------------------------------------------------------
 # Pole tekstowe:
 wynik_klasyfikacji = tk.Text(master = ramka_wynik,height = 15, width = 20)
