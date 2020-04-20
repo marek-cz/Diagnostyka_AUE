@@ -32,20 +32,15 @@ C2 = 47 * n
 
 elementy = {'R1' : R1,'R2' : R2,'R3' : R3,'C1' : C1,'C2' : C2}
 
-TOLERANCJA = {'R' : 0.01, 'C' : 0.02}
+TOLERANCJA = {'R' : 0.01, 'C' : 0.10}
 
 #------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
-BADANE_CZESTOTLIWOSCI = np.array([50,100,150])
-#BADANE_CZESTOTLIWOSCI = np.array([40,80,120])
+BADANE_CZESTOTLIWOSCI_MULTISIN = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # czestotliwosci dla pobudzenia wieloharmonicznego
+BADANE_CZESTOTLIWOSCI_SINC = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # czestotliwosci dla pobudzenia SINC
 #------------------------------------------------------------------------------------
-# 3. LICZBA PUNKTOW NA ELEMENT
-LICZBA_PUNKTOW = 12
-#------------------------------------------------------------------------------------
-# 4. Epsilon
-epsilon = 0.001
-#------------------------------------------------------------------------------------
-# 5. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
-LICZBA_LOSOWAN_MC = 500
-# 6. PCA - PROG WARIANCJI - DO OKRESLENIA LICZBY SKLADOWYCH GLOWNYCH -  W PROCENTACH!
-PCA_PROG = 99 # [%]
+# 3. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
+LICZBA_LOSOWAN_MC = 1000
+# 6. Liczba losowan do badania obszaru nominalnego
+LICZBA_LOSOWAN_PUNKT_NOMINALNY = 10000
