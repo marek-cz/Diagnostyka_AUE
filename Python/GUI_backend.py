@@ -119,18 +119,31 @@ def WyrysujDane():
     funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
 
 #-------------------------------------------------------------------------------------------
-def WyrysujSlownik(nazwa_ukladu):
+def WyrysujSlownik(nazwa_ukladu, pomiary = False):
 
     slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu) # wczytanie domyslnego ukladu
     wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu)
     x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
-    #funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+    if pomiary : p = WczytajPomiary(nazwa_ukladu)
+    funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     funkcje.plt.plot(x,y, '-', label = 'Obszar nominalny', linewidth = 4)
+    if pomiary :
+        p = np.transpose(p)
+        fi = wczytajMacierzPCA(nazwa_ukladu)
+        p = np.matmul( fi, p )
+        funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
     funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen_PCA2)
 
+###-------------------------------------------------------------------------------------------
+##def WyrysujPomiary2D(nazwa_ukladu):
+##    pomiary = WczytajPomiary(nazwa_ukladu)
+##    fi = wczytajMacierzPCA(nazwa_ukladu)
+##    p = np.matmul( fi, np.transpose( pomiary ))
+##    print(p.shape)
+##    funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+##    WyrysujSlownik(nazwa_ukladu)
 #-------------------------------------------------------------------------------------------
-def WyrysujPomiary2D(nazwa_ukladu):
-
+def WczytajPomiary(nazwa_ukladu):
     data = datetime.datetime.now()
     #sprawdzenie lokalizacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
@@ -153,13 +166,10 @@ def WyrysujPomiary2D(nazwa_ukladu):
             pomiar = pomiar[1:11]
             pomiary = np.concatenate(( pomiary, pomiar) )
     pomiary = pomiary.reshape( ( pomiary.shape[0] // 10, 10 ) )
-    fi = wczytajMacierzPCA(nazwa_ukladu)
-    p = np.matmul( fi, np.transpose( pomiary ))
-    print(p.shape)
-    funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
-    WyrysujSlownik(nazwa_ukladu)
-   
 
+    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    
+    return pomiary
 #-------------------------------------------------------------------------------------------
 
 def ListaPortowCOM():
@@ -370,6 +380,8 @@ def wczytajMacierzPCA(nazwa_ukladu):
 
     fi = np.load('PCA_2_SKL.npy')
 
+    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    
     return fi
     
 #-------------------------------------------------------------------------------------------

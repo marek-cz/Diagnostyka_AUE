@@ -82,7 +82,7 @@ def WyrysujSlownik():
     backend.WyrysujSlownik(wyborUkladu.get())
 
 def WyrysujPomiary():
-    backend.WyrysujPomiary2D(wyborUkladu.get())
+    backend.WyrysujSlownik(wyborUkladu.get(), True)
 
 def WypiszUklady():
     global uklady
