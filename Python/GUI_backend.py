@@ -24,8 +24,6 @@ PRZEBIEGI = {"SINUS_500_NR" : 0 , "SINUS_250_NR" : 1, "SINUS_100_NR" : 2,"MULTI_
 KSZTALTY = ["SINUS","MULTI_SIN","SINC"]
 KONCOWKA_LICZBA_PROBEK = ["_500_NR","_250_NR","_100_NR"]
 TERMINATOR = '$'
-TERMINATOR_STRING = '$$$$'
-LICZBA_ZNAKOW_TERMINACJI = 4
 # opcje transmisji
 BAUDRATE = 115200
 TIMEOUT = None
@@ -52,6 +50,8 @@ slownik_uszkodzen_PCA2 = {} # zmienna globalna zawierajaca slownik uszkodzen
 slownik_uszkodzen_PCA3 = {} # zmienna globalna zawierajaca slownik uszkodzen
 czestotliwosci_multisin = np.array([])
 czestotliwosci_sinc = np.array([])
+
+
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa_ukladu):
@@ -63,10 +63,11 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
 
     wynik = ''
     #print(opcje_pomiaru)
-    
-    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu)
-    czestotliwosci_multisin = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywac dla danego ukladu!
-    czestotliwosci_sinc = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # potem wczytywane dla ukladu
+
+    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu)
+    if (opcje_pomiaru["Zapisz widmo PC"]) : zapisDanych(widmoPC,'widmoPC',nazwa_ukladu)
+    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU',nazwa_ukladu)
+
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
@@ -95,23 +96,72 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
         if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x) :
             wynik = 'Nominalne'
         else :
-            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
+            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x)
             wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
             
-    if (opcje_pomiaru["Wyrysuj dane"]) :
-        ZamknijCOM(portCOM)
-        funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
-        #funkcje.plt.clf() # wyczyszczenie
-        widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
-        funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
+##    if (opcje_pomiaru["Wyrysuj dane"]) :
+##        ZamknijCOM(portCOM)
+##        funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+##        #funkcje.plt.clf() # wyczyszczenie
+##        widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+##        funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
         
-    
-    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar')
-    if (opcje_pomiaru["Zapisz widmo PC"]) : zapisDanych(widmoPC,'widmoPC')
-    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU')
     ZamknijCOM(portCOM)
+    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu)
+    if (opcje_pomiaru["Zapisz widmo PC"]) : zapisDanych(widmoPC,'widmoPC',nazwa_ukladu)
+    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU',nazwa_ukladu)
     return wynik
 #-------------------------------------------------------------------------------------------
+def WyrysujDane():
+    funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+    #funkcje.plt.clf() # wyczyszczenie
+    widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+    funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
+
+#-------------------------------------------------------------------------------------------
+def WyrysujSlownik(nazwa_ukladu):
+
+    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu) # wczytanie domyslnego ukladu
+    wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu)
+    x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+    #funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+    funkcje.plt.plot(x,y, '-', label = 'Obszar nominalny', linewidth = 4)
+    funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen_PCA2)
+
+#-------------------------------------------------------------------------------------------
+def WyrysujPomiary2D(nazwa_ukladu):
+
+    data = datetime.datetime.now()
+    #sprawdzenie lokalizacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    os.chdir('..') # przejscie katalog wyzej, do glownego katalogu programu
+    if not(os.path.exists('Pomiary')): return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
+    os.chdir('Pomiary')
+    nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day)
+    if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
+        print("Nie ma katalogu")
+        return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
+    os.chdir(nazwa_katalogu_z_pomiarem)
+
+    lista_plikow = os.listdir()
+    pomiary = np.array([])
+
+    for plik in lista_plikow:
+        if plik.find('widmoPC') != -1 :
+            pomiar = np.load(plik)
+            pomiar = pomiar[1:11]
+            pomiary = np.concatenate(( pomiary, pomiar) )
+    pomiary = pomiary.reshape( ( pomiary.shape[0] // 10, 10 ) )
+    fi = wczytajMacierzPCA(nazwa_ukladu)
+    p = np.matmul( fi, np.transpose( pomiary ))
+    print(p.shape)
+    funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+    WyrysujSlownik(nazwa_ukladu)
+   
+
+#-------------------------------------------------------------------------------------------
+
 def ListaPortowCOM():
     porty = list(serial.tools.list_ports.comports())
     result = []
@@ -318,7 +368,7 @@ def wczytajMacierzPCA(nazwa_ukladu):
     # wejscie do katalogu ze slownikiem PCA 2 skladowe
     os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
 
-    fi = np.load('PCA_3_SKL.npy')
+    fi = np.load('PCA_2_SKL.npy')
 
     return fi
     
@@ -338,7 +388,7 @@ def ObliczWidmo(typ_widma,dane,PER):
     return widmo,frq
 #-------------------------------------------------------------------------------------------
 
-def zapisDanych(dane,etykieta_pliku):
+def zapisDanych(dane,etykieta_pliku,nazwa_ukladu):
     dane = np.asarray(dane)
     data = datetime.datetime.now()
     nazwa_pliku = etykieta_pliku + '_' + str( data.hour ) + '-' + str( data.minute )+ '-' + str( data.second )
@@ -350,7 +400,7 @@ def zapisDanych(dane,etykieta_pliku):
         # jezeli folder nie istnieje tworzymy go
         os.mkdir('Pomiary')
     os.chdir('Pomiary')
-    nazwa_katalogu_z_pomiarem = str(data.year) + '-' + str(data.month) + '-' + str(data.day)
+    nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day)
     if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
         # jezeli folder nie istnieje tworzymy go
         os.mkdir(nazwa_katalogu_z_pomiarem)
@@ -387,15 +437,17 @@ def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt):
     Sprawdzenie czy odleglosc Mahalanobisa miedzy punktem pomiarowym, a
     wyznaczonym w symulajci centrum jets mniejsza od wartosci granicznej
     """
-    #sprawdzenie lokalziacji:
-    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
-        os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+##    #sprawdzenie lokalziacji:
+##    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+##        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+##    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+##
+##    wartosc_srednia = np.load('srodek_PCA_2_skladowe.npy')
+##    C1 = np.load('macierz_skalujaca_PCA_2_skladowe.npy')
+##    s_graniczna = np.load('graniczna_odleglosc_PCA_2_skladowe.npy')
+##
 
-    wartosc_srednia = np.load('srodek_PCA_3_skladowe.npy')
-    C1 = np.load('macierz_skalujaca_PCA_3_skladowe.npy')
-    s_graniczna = np.load('graniczna_odleglosc_PCA_3_skladowe.npy')
-
+    wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu)
     s = odlegloscMahalanobisa(punkt, wartosc_srednia, C1)
 
     os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
@@ -403,6 +455,20 @@ def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt):
     if ( s < s_graniczna ) : return True
     else : return False
 
+#-------------------------------------------------------------------------------------------
+def WczytajParametryElipsy(nazwa_ukladu):
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+    wartosc_srednia = np.load('srodek_PCA_2_skladowe.npy')
+    C1 = np.load('macierz_skalujaca_PCA_2_skladowe.npy')
+    s_graniczna = np.load('graniczna_odleglosc_PCA_2_skladowe.npy')
+
+
+    os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do lokalziacji
+    
+    return wartosc_srednia, C1, s_graniczna
     
 #-------------------------------------------------------------------------------------------
 
@@ -428,3 +494,9 @@ def odlegloscMahalanobisa(x,y,C):
     s = np.matmul(np.transpose(d), C)
     s = np.matmul( s , d)
     return np.sqrt(s)
+
+
+
+###############################################################################################################################
+
+#slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin("HPF_MFB") # wczytanie domyslnego ukladu
