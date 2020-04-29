@@ -119,10 +119,10 @@ funkcjeUkladowe.np.save('f_multisin',f_multisin)
 ObszarTolerancji = funkcjeUkladowe.sygnaly.widmo(sygnal, f_multisin) * funkcjeUkladowe.monteCarloNormal( f_multisin ,liczba_losowanMC = funkcjeUkladowe.uklad.LICZBA_LOSOWAN_PUNKT_NOMINALNY)
 
 
-#decyzja = input("Czy symulowac macierz danych? T/N ")
-#if decyzja == 'T' :
-#    X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f_multisin, sygnal, funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
-#    funkcjeUkladowe.np.save("macierz_danych_multisin_"+nazwa_ukladu, X)
+decyzja = input("Czy symulowac macierz danych? T/N ")
+if decyzja == 'T' :
+    X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f_multisin, sygnal, funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
+    funkcjeUkladowe.np.save("macierz_danych_multisin_"+nazwa_ukladu, X)
 
 X = funkcjeUkladowe.np.load("macierz_danych_multisin_"+nazwa_ukladu+".npy")
 
