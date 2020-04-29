@@ -16,9 +16,10 @@ portyCOM = [] # LISTA ZAWIERAJACA PORTY COM
 wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru COM
 wyborTypuPomiaru = tk.StringVar()
 wyborUkladu = tk.StringVar()
+ileSkladowychPCA = tk.IntVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
-czestotliwosc = 1000
-opoznienie_ms = 10
+czestotliwosc = 100
+opoznienie_ms = 100
 opcje = ["Generacja","Pomiar","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
 zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
@@ -41,7 +42,7 @@ def funkcjaPrzycisku1():
     for opcja in zmienneOpcji:
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
-    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get())
+    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get())
     if not (licznik % 15) :
         wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
         licznik = 1
@@ -59,6 +60,9 @@ def zmianaMetodyPomiaru(*args): # function called when var changes
 
 def zmianaUkladu(*args):
     xyz = 0 # nic :)
+
+def zmianaPCA(*args):
+    print("liczba skladowych glownych = ",ileSkladowychPCA.get())
 
 def WypiszPortyCOM():
     global portyCOM
@@ -79,10 +83,10 @@ def WyrysujDane():
     backend.WyrysujDane()
 
 def WyrysujSlownik():
-    backend.WyrysujSlownik(wyborUkladu.get())
+    backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get())
 
 def WyrysujPomiary():
-    backend.WyrysujSlownik(wyborUkladu.get(), True)
+    backend.WyrysujSlownik(wyborUkladu.get(), ileSkladowychPCA.get(),True)
 
 def WypiszUklady():
     global uklady
@@ -101,7 +105,7 @@ menu1 = tk.Menu(okno)
 program_menu = tk.Menu(menu1, tearoff = 0) # tearoff = 0 -> menu sie nie "odrywa"
 program_menu.add_command(label = "Wyrysuj pomiar", command = WyrysujDane) # Rysowanie
 program_menu.add_command(label = "Wyrysuj krzywe identyfikacyjne", command = WyrysujSlownik) # Rysowanie
-program_menu.add_command(label = "Wyrysuj pomiary 2D", command = WyrysujPomiary ) # Rysowanie
+program_menu.add_command(label = "Wyrysuj pomiary", command = WyrysujPomiary ) # Rysowanie
 program_menu.add_separator()
 program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
 
@@ -111,7 +115,7 @@ wyborPortuCOM.trace('w', zmianaCOM) # funkcja callback wywolywana za kazdym raze
 COM_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszPortyCOM)
 menu1.add_cascade(label="Port Szeregowy", menu=COM_menu)
 
-wyborTypuPomiaru.trace('w',zmianaMetodyPomiaru) # funkcja callback wywolywana za kazdym razem gdy wyborPortuCOM sie zmieni
+wyborTypuPomiaru.trace('w',zmianaMetodyPomiaru) # funkcja callback wywolywana za kazdym razem gdy wyborTypuPomiaru sie zmieni
 Pomiar_menu = tk.Menu(menu1, tearoff=0)
 for typ_pomiaru in typyPomiaru:
     #print(typ_pomiaru)
@@ -123,6 +127,13 @@ wyborUkladu.set(UKLAD_DOMYSLNY)
 wyborUkladu.trace('w',zmianaUkladu) #seldzenie zmiennej wybor ukladu
 Uklad_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszUklady)
 menu1.add_cascade(label = 'Układ',menu = Uklad_menu)
+
+ileSkladowychPCA.set(2) # domyslnie 2 skladowe glowne
+ileSkladowychPCA.trace('w',zmianaPCA) # funkcja callback wywolywana za kazdym razem gdy uzytkownik zmieni liczbe skaldowych PCA
+PCA_menu = tk.Menu(menu1, tearoff=0)#, postcommand=WypiszUklady)
+PCA_menu.add_radiobutton(label = "2 składowe główne", value = 2, variable = ileSkladowychPCA)
+PCA_menu.add_radiobutton(label = "3 składowe główne", value = 3, variable = ileSkladowychPCA)
+menu1.add_cascade(label = 'PCA',menu = PCA_menu)
 
 okno.config(menu = menu1)
 #------------------------------------------------------------------------------------------------------
