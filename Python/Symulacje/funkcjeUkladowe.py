@@ -816,12 +816,13 @@ def wyrysujKlasterDanych3D(dane,badane_czestotliwosci  ):
     #A = monteCarlo([],uklad.elementy,badane_czestotliwosci,uklad.TOLERANCJA,uklad.LICZBA_LOSOWAN_MC)
     A = np.transpose(dane)
     ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
-    ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = 'Punkt nominalny')
-    ax.set_xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    ax.set_ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
-    ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
+    #ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = 'Punkt nominalny')
+    ax.set_xlabel('PCA 1')
+    ax.set_ylabel('PCA 2')
+    ax.set_zlabel('PCA 3')
     ax.legend()
-    plt.show()
+    #plt.axis('equal')
+    #plt.show()
 #------------------------------------------------------------------------------------------------------------------------------------------------------------
 def EB(macierz_kowariancji,srodek,punkt):
     """
