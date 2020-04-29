@@ -150,8 +150,8 @@ void Init(void)
 	sei();	// globalne odblokowanie przerwan
 	DMA_init();
 	DAC_init();
-	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc); // 256A3Bu
-	//ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
+	//ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN4_gc); // 256A3Bu
+	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
 	TCC0_Init(31); // Timer taktujacy DAC i ADC
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 }
@@ -457,7 +457,7 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
 			break;
 		case 'P' : // Pomiar
-			typ_pomiaru = ramka_danych[POM_TYP_Bp]; // odczyt flag pomiaru
+			typ_pomiaru = znakNaCyfre( ramka_danych[POM_TYP_Bp] ); // odczyt flag pomiaru
 			if (typ_pomiaru & POMIAR_IMPULSOWY)
 			{
 				PomiarImpulsowy(*liczba_probek, znakiNaLiczbe(ramka_danych, POM_DELAY_Bp) );
