@@ -259,10 +259,18 @@ def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
     return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
 
 #------------------------------------------------------------------------------
-def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
+def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
 
+    widmo_sygnalu = 0 # inicjalizacja zmiennej
+    
+    if typ_widma == 'TF' :
+        widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
+        print("Licze TF")
+    else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
+
+    
     wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
     
     for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
@@ -271,10 +279,9 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, li
         lista = np.zeros((wartosci_minus.shape[0],len(badane_czestotliwosci)))
         for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
             charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
+            wartosci = charAmpl * widmo_sygnalu
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
@@ -285,10 +292,9 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, li
         lista = np.zeros((wartosci_plus.shape[0],len(badane_czestotliwosci)))
         for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            #print(elementy_modyfikacje)
             (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
             charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
+            wartosci = charAmpl * widmo_sygnalu
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
@@ -296,7 +302,7 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, li
 
     (licznik, mianownik) = uklad.transmitancja(elementy)
     charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-    wartosci = charAmpl * sygnaly.widmo(sygnal,badane_czestotliwosci)
+    wartosci = charAmpl * widmo_sygnalu
     słownikUszkodzen.setdefault('Nominalne',wartosci)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -304,11 +310,16 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal,elementy = uklad.elementy, li
     return słownikUszkodzen
 
 #------------------------------------------------------------------------------
-def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal ,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
+def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
 
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
-    widmo_sygnalu = sygnaly.widmo(sygnal,badane_czestotliwosci)
+    widmo_sygnalu = 0 # inicjalizacja zmiennej
+    
+    if typ_widma == 'TF' :
+        widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
+        print("Licze TF")
+    else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
 
     wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
     
@@ -710,12 +721,12 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(badane_czestotliwosci, sl
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
-def wygenerujMacierzDanychPCA(badane_czestotliwosci, sygnal, liczba_losowan, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
+def wygenerujMacierzDanychPCA(badane_czestotliwosci, sygnal, typ_widma ,liczba_losowan, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
     """
     GENERUJEMY MACIERZ DANYCH DO ANALIZY PCA
     KAZDA KOLUMNA MACIERZY ODPOWIADA JEDNEMU WEKTOROWI POMIAROWEMU
     """
-    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo( badane_czestotliwosci, sygnal ,elementy, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
+    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo( badane_czestotliwosci, sygnal, typ_widma ,elementy, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
     Liczba_wymiarow  =  badane_czestotliwosci.shape[0] # liczba wymiarow w przestrzeni pomiarowej
     X = np.array([])
     for uszkodzenie in slownik_uszkodzen_MC:
