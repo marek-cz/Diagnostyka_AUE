@@ -54,7 +54,7 @@ czestotliwosci_sinc = np.array([])
 
 #-------------------------------------------------------------------------------------------
 
-def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa_ukladu, liczba_skladowych_glownych):
+def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych):
     global wyniki_pomiaru
     global slownik_uszkodzen
     global widmoPC
@@ -62,7 +62,7 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     global czestotliwosci_sinc
 
     wynik = ''
-    #print(opcje_pomiaru)
+    print(typ_pomiaru_string)
     print(liczba_skladowych_glownych)
 
     
@@ -88,13 +88,13 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, portCOM, nazwa
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
         x = widmoPC[1:11] # na razie tak :)
-        fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu)
+        fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
         if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, x)
         else : x = np.matmul(fi2, x) # domyslnie 2 skladowe glowne
         if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych) :
             wynik = 'Nominalne'
         else :
-            slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu) 
+            slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string ) 
             if liczba_skladowych_glownych == 3 : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
             else : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
 ##            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x)
@@ -117,21 +117,20 @@ def WyrysujDane():
     funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
 
 #-------------------------------------------------------------------------------------------
-def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych ,pomiary = False):
+def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomiary = False):
 
-    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin(nazwa_ukladu) # wczytanie domyslnego ukladu
-    fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu)
+    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_slownika) # wczytanie domyslnego ukladu
+    fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_slownika)
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     p = 0
     if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
-        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu)
+        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
         x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
         funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
     if pomiary : #and (type(p) is np.ndarray ): 
         p = WczytajPomiary(nazwa_ukladu)
         if (type(p) is np.ndarray ):  # sprawdzenie czy sa pomiary
             p = np.transpose(p)
-##            fi = wczytajMacierzPCA(nazwa_ukladu)
             if liczba_skladowych_glownych == 3: p = np.matmul( fi3, p )
             else :
                 p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
@@ -162,7 +161,6 @@ def WczytajPomiary(nazwa_ukladu):
     for plik in lista_plikow:
         if plik.find('widmoPC') != -1 :
             pomiar = np.load(plik)
-            pomiar = pomiar[1:11]
             pomiary = np.concatenate(( pomiary, pomiar) )
     pomiary = pomiary.reshape( ( pomiary.shape[0] // 10, 10 ) )
 
@@ -341,7 +339,7 @@ def OdczytajPomiar():
             return dane_string
 #-------------------------------------------------------------------------------------------
 
-def WczytajSlownikiUszkodzenMultisin(nazwa_ukladu):
+def WczytajSlownikiUszkodzen(nazwa_ukladu,typ_slownika):
 
     slownik_PCA2 = {}
     slownik_PCA3 = {}
@@ -349,8 +347,10 @@ def WczytajSlownikiUszkodzenMultisin(nazwa_ukladu):
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    # wejscie do katalogu ze slownikiem PCA 2 skladowe
-    os.chdir(nazwa_ukladu+'/Slowniki_Multisin/Slownik_PCA_2')
+    # wejscie do katalogu ze slownikami
+    if typ_slownika == 'Sinc' : os.chdir(nazwa_ukladu+'/Slowniki_Sinc')
+    else : os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+    os.chdir('Slownik_PCA_2')
     lista_plikow = os.listdir() # nazwy plikow oznaczaja sygnatury w slowniku
     for nazwa_pliku in lista_plikow:
         indeks_kropki = nazwa_pliku.find('.')
@@ -370,12 +370,14 @@ def WczytajSlownikiUszkodzenMultisin(nazwa_ukladu):
     
     return slownik_PCA2, slownik_PCA3
 #-------------------------------------------------------------------------------------------
-def wczytajMacierzPCA(nazwa_ukladu):
+def wczytajMacierzPCA(nazwa_ukladu, typ_slownika):
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    # wejscie do katalogu ze slownikiem PCA 2 skladowe
-    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+
+    if typ_slownika == 'Sinc' : os.chdir(nazwa_ukladu+'/Slowniki_Sinc')
+    else : os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+##    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
 
     fi2 = np.load('PCA_2_SKL.npy')
     fi3 = np.load('PCA_3_SKL.npy')
@@ -460,11 +462,14 @@ def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt, liczba_skladowych_glown
     else : return False
 
 #-------------------------------------------------------------------------------------------
-def WczytajParametryElipsy(nazwa_ukladu, liczba_skladowych_glownych):
+def WczytajParametryElipsy(nazwa_ukladu, liczba_skladowych_glownych, typ_slownika):
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
-    os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+
+    
+    if typ_slownika == 'Sinc' : os.chdir(nazwa_ukladu+'/Slowniki_Sinc')
+    else : os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
 
     wartosc_srednia, C1, s_graniczna = 0,0,0 # inicjalizacja zmiennych
     
@@ -511,4 +516,3 @@ def odlegloscMahalanobisa(x,y,C):
 
 ###############################################################################################################################
 
-#slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzenMultisin("HPF_MFB") # wczytanie domyslnego ukladu
