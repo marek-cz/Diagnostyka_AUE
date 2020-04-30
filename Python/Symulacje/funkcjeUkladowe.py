@@ -51,10 +51,13 @@ LICZBA_PUNKTOW = 12 # liczba punktow na element
 F_CPU = 32e6
 LICZBA_PROBEK = 500
 
-PER = (F_CPU//(LICZBA_PROBEK*uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0])) - 1 # wartosc rejestru PER
-F_ZNORMALIZOWANE = uklad.BADANE_CZESTOTLIWOSCI_MULTISIN / uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
-uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0] = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
-uklad.BADANE_CZESTOTLIWOSCI_MULTISIN = F_ZNORMALIZOWANE * uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
+##PER = (F_CPU//(LICZBA_PROBEK*uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0])) - 1 # wartosc rejestru PER
+##F_ZNORMALIZOWANE = uklad.BADANE_CZESTOTLIWOSCI_MULTISIN / uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
+##uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0] = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
+##uklad.BADANE_CZESTOTLIWOSCI_MULTISIN = F_ZNORMALIZOWANE * uklad.BADANE_CZESTOTLIWOSCI_MULTISIN[0]
+
+PER = (F_CPU//(LICZBA_PROBEK*uklad.CZESTOTLIWOSC_PODSTAWOWA_MULTISIN)) - 1 # wartosc rejestru PER
+uklad.CZESTOTLIWOSC_PODSTAWOWA_MULTISIN = F_CPU / (LICZBA_PROBEK * (PER+1)) # dopasowanie do faktycznie generowanej przez DAC czesttoliwosci
 
 #------------------------------------------------------------------------------
 def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
