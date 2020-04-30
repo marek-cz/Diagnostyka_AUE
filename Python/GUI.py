@@ -17,7 +17,7 @@ wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru CO
 wyborTypuPomiaru = tk.StringVar()
 wyborUkladu = tk.StringVar()
 ileSkladowychPCA = tk.IntVar()
-typyPomiaru = ["Sinus","Wieloharmoniczny","Impulsowy"]
+typyPomiaru = ["Sinus","Wieloharmoniczny","Sinc"]
 czestotliwosc = 100
 opoznienie_ms = 100
 opcje = ["Generacja","Pomiar","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
@@ -42,7 +42,7 @@ def funkcjaPrzycisku1():
     for opcja in zmienneOpcji:
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
-    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get())
+    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get())
     if not (licznik % 15) :
         wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
         licznik = 1
@@ -83,10 +83,10 @@ def WyrysujDane():
     backend.WyrysujDane()
 
 def WyrysujSlownik():
-    backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get())
+    backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get(), wyborTypuPomiaru.get())
 
 def WyrysujPomiary():
-    backend.WyrysujSlownik(wyborUkladu.get(), ileSkladowychPCA.get(),True)
+    backend.WyrysujSlownik(wyborUkladu.get(), ileSkladowychPCA.get(), wyborTypuPomiaru.get(), True)
 
 def WypiszUklady():
     global uklady
