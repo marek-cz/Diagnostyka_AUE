@@ -904,7 +904,13 @@ def odchylenia_std(uszkodzenie_symulacja_MC):
     x = np.asarray(uszkodzenie_symulacja_MC)
     odchylenia = []
     for e in x :
-        odchylenia.append(e.std())
+        acc = 0
+        mx = e.mean(axis = 0)
+        for i in range(e.shape[0]):
+            r = e[i] - mx
+            acc += np.dot(r,r)
+        sigma = np.sqrt( acc/ (e.shape[0] - 1) )slow
+        odchylenia.append(sigma)
 
     return np.asarray(odchylenia)
 
