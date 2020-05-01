@@ -573,15 +573,8 @@ def KlasyfikacjaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
             c2 = slownik_uszkodzen[uszkodzenie][i+1]
             s1 = slownik_odchylen_std[uszkodzenie][i]
             s2 = slownik_odchylen_std[uszkodzenie][i+1]
-            slownik_wynikow[uszkodzenie] += DRB(pomiar,c1,c2,s1,s1)
-
-    wynik_max = 0
-    etykieta = ''
-    for uszkodzenie in slownik_wynikow:
-        if slownik_wynikow[uszkodzenie] > wynik_max:
-            wynik_max = slownik_wynikow[uszkodzenie]
-            etykieta = uszkodzenie
-    
-    return wynik_max, etykieta
+            wynik = DRB(pomiar,c1,c2,s1,s1)
+            if wynik > slownik_wynikow[uszkodzenie] : slownik_wynikow[uszkodzenie] = wynik
+    return slownik_wynikow
 ###############################################################################################################################
 
