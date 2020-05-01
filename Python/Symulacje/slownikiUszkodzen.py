@@ -51,7 +51,7 @@ def wyznaczElipse(macierz_skalujaca, odleglosc_Mahalanobisa, srodek):
     y = y.reshape((y.shape[1],))
     
     return x,y
-
+###########################################################################################################
 def wyznaczMacierzSkalujaca(Klaster_danych):
     liczba_pomiarow = Klaster_danych.shape[1] # liczba pomiarow
     C = funkcjeUkladowe.np.cov( Klaster_danych ) # wyznaczanie macierzy kowariancji
@@ -65,7 +65,7 @@ def wyznaczMacierzSkalujaca(Klaster_danych):
     C1 = funkcjeUkladowe.np.matmul( funkcjeUkladowe.np.matmul( U, LAMBDA_diag ), funkcjeUkladowe.np.transpose(U) ) # wyznaczenie unormowanej macierzy skalujacej
 
     return C1
-
+###########################################################################################################
 def wyznaczGranicznaOdlegloscMahalanobisa(Klaster_danych, srodek, macierz_skalujaca ):
     s_graniczna = 0.0
     liczba_pomiarow = Klaster_danych.shape[1] # liczba pomiarow
@@ -82,7 +82,7 @@ def wyznaczGranicznaOdlegloscMahalanobisa(Klaster_danych, srodek, macierz_skaluj
         s_graniczna += delta_s
 
     return s_graniczna
-
+###########################################################################################################
 def PCA_2_skladowe(PCA_FI_2_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     Klaster_danych = funkcjeUkladowe.np.matmul( PCA_FI_2_SKLADOWE, funkcjeUkladowe.np.transpose( ObszarTolerancji ) ) # transpozycja, bo w PCA mamy miec pomiary w kolumnach, a w ObszatTolerancji sa w wierszach
 
@@ -114,7 +114,8 @@ def PCA_2_skladowe(PCA_FI_2_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     ############################################
     #   EWENTUALNE LACZENIE SYGNATUR
     ###########################################
-    funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu Slowniki_Multisin
+    funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu
+###########################################################################################################
 
 def PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     Klaster_danych = funkcjeUkladowe.np.matmul( PCA_FI_3_SKLADOWE, funkcjeUkladowe.np.transpose( ObszarTolerancji ) ) # transpozycja, bo w PCA mamy miec pomiary w kolumnach, a w ObszatTolerancji sa w wierszach
@@ -144,12 +145,14 @@ def PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     print("\nOdleglsoc graniczna : ", s_graniczna_PCA_3)
     #decyzja = input("Czy wyrysowac krzywe identyfikacyjne dla trzech skladowych glownych? T/N ")
     #if decyzja == 'T' : funkcjeUkladowe.wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen_PCA_3)
-
-    #----------------------------------------------------------------------------------------------------
+    ############################################
+    #   EWENTUALNE LACZENIE SYGNATUR
+    ###########################################
     funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu Slowniki_Multisin
-
+###########################################################################################################
 def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen):
     decyzja = 'T'#input("Czy symulowac macierz danych? T/N ")
+    slownik_MC = {} # inicjalizacja -> zmienna widoczna poza if'em
     if decyzja == 'T' :
         slownik_MC = funkcjeUkladowe.slownikUszkodzenMonteCarlo(f, sygnal, typ_widma)
 ##        X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f, sygnal, typ_widma ,funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
@@ -164,8 +167,26 @@ def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen):
     funkcjeUkladowe.np.save('PCA_2_SKL', PCA_FI_2_SKLADOWE)
     funkcjeUkladowe.np.save('PCA_3_SKL', PCA_FI_3_SKLADOWE)
     PCA_2_skladowe(PCA_FI_2_SKLADOWE,ObszarTolerancji, slownik_uszkodzen)
+    odchylenia_std(slownik_MC, PCA_FI_2_SKLADOWE, 2)
     PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen)
-    
+    odchylenia_std(slownik_MC, PCA_FI_3_SKLADOWE, 3)
+###########################################################################################################
+
+def odchylenia_std(slownik_uszkodzen_MC, fi, liczba_skladowych_glownych):
+    slownik_uszkodzen_MC_po_PCA = funkcjeUkladowe.slownikUszkodzenPCA_MC(slownik_uszkodzen_MC, fi) # wyznaczamy slownik uszkodzen dla danej przestrzeni
+
+    slownik_std = funkcjeUkladowe.slownik_odchylen_std( slownik_uszkodzen_MC_po_PCA )
+    nazwa_katalogu = "std_PCA" + str(liczba_skladowych_glownych)
+
+    if not(funkcjeUkladowe.os.path.exists(nazwa_katalogu)):
+        # jezeli folder nie istnieje tworzymy go
+        funkcjeUkladowe.os.mkdir(nazwa_katalogu)
+    funkcjeUkladowe.os.chdir(nazwa_katalogu)
+    # zapis slownika do plikow numpy:
+    for sygnatura in slownik_std:
+        funkcjeUkladowe.np.save(sygnatura, slownik_std[sygnatura])
+
+    funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu wyzej
 #------------------------------------------------------------------------------------------------------------------
 
 print("Symulacje w toku...\n")
