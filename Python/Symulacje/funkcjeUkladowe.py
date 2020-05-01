@@ -909,7 +909,7 @@ def odchylenia_std(uszkodzenie_symulacja_MC):
         for i in range(e.shape[0]):
             r = e[i] - mx
             acc += np.dot(r,r)
-        sigma = np.sqrt( acc/ (e.shape[0] - 1) )slow
+        sigma = np.sqrt( acc/ (e.shape[0] - 1) )
         odchylenia.append(sigma)
 
     return np.asarray(odchylenia)
