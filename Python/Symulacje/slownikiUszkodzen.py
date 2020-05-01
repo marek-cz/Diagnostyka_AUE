@@ -151,7 +151,9 @@ def PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
 def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen):
     decyzja = 'T'#input("Czy symulowac macierz danych? T/N ")
     if decyzja == 'T' :
-        X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f, sygnal, typ_widma ,funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
+        slownik_MC = funkcjeUkladowe.slownikUszkodzenMonteCarlo(f, sygnal, typ_widma)
+##        X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f, sygnal, typ_widma ,funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
+        X = funkcjeUkladowe.wygenerujMacierzDanychPCA( slownik_MC )
         funkcjeUkladowe.np.save("macierz_danych_"+nazwa_ukladu, X)
 
     X = funkcjeUkladowe.np.load("macierz_danych_"+nazwa_ukladu+".npy")
