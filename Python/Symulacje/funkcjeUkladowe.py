@@ -896,3 +896,24 @@ def okrag(srodek, promien):
 
     return x1, x2
     
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+def odchylenia_std(uszkodzenie_symulacja_MC):
+    """
+    Funkcja zwracajaca wektor odchylen std dla danego uszkodzenia
+    """
+    x = np.asarray(uszkodzenie_symulacja_MC)
+    odchylenia = []
+    for e in x :
+        odchylenia.append(e.std())
+
+    return np.asarray(odchylenia)
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+def slownik_odchylen_std(slownik_uszkodzen_MC):
+    slownik = {}
+
+    for uszkodzenie in slownik_uszkodzen_MC:
+        if uszkodzenie == 'Nominalne' : continue
+        slownik[uszkodzenie] = odchylenia_std( slownik_uszkodzen_MC[uszkodzenie] )
+
+    return slownik
