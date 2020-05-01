@@ -46,7 +46,7 @@ PROG_DOLNY_PROCENTY = 50
 ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY = 5
 WARTOSC_NOMINALNA_PROCENTY = 100
 
-LICZBA_PUNKTOW = 12 # liczba punktow na element
+LICZBA_PUNKTOW = 6 # liczba punktow na element
 
 F_CPU = 32e6
 LICZBA_PROBEK = 500
@@ -236,28 +236,12 @@ def analizaWorstCase(czestotliwosci, sygnal,elementy = uklad.elementy  ,toleranc
         
 #------------------------------------------------------------------------------
 def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
+    """
+    Zwraca wartosci w procentach, potem nalezy przemnozyc wartosc elementu, przez otrzymane wartosci
+    """
 
-    liczba_punktow_plus = liczba_punktow_minus = (liczba_punktow_na_element//2) + 1
-    #tolerancja = tolerancja * 100 # procenty!
-    delta_minus = (WARTOSC_NOMINALNA_PROCENTY - ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY - PROG_DOLNY_PROCENTY) / liczba_punktow_minus
-    delta_plus = (PROG_GORNY_PROCENTY - (WARTOSC_NOMINALNA_PROCENTY + ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY)) / liczba_punktow_plus
-    
-    wartosci_elementu_znormalizowane_minus = np.arange(PROG_DOLNY_PROCENTY,WARTOSC_NOMINALNA_PROCENTY - ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY + delta_minus ,delta_minus)
-    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_minus.shape[0]-1)
-    if wartosci_elementu_znormalizowane_minus[indeks_ostatniego_elementu] > (WARTOSC_NOMINALNA_PROCENTY - ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY) :
-        wartosci_elementu_znormalizowane_minus = np.delete(wartosci_elementu_znormalizowane_minus,indeks_ostatniego_elementu)
-    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_minus.shape[0]-1)
-    if ((WARTOSC_NOMINALNA_PROCENTY - ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY) - wartosci_elementu_znormalizowane_minus[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-        wartosci_elementu_znormalizowane_minus = np.concatenate( (wartosci_elementu_znormalizowane_minus,np.array([WARTOSC_NOMINALNA_PROCENTY - ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY])) )
-##################################################################################################################################################################
-    wartosci_elementu_znormalizowane_plus = np.arange(WARTOSC_NOMINALNA_PROCENTY + ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY, PROG_GORNY_PROCENTY + delta_plus ,delta_plus)
-    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_plus.shape[0]-1)
-    
-    if wartosci_elementu_znormalizowane_plus[indeks_ostatniego_elementu] > (PROG_GORNY_PROCENTY) :
-        wartosci_elementu_znormalizowane_plus = np.delete(wartosci_elementu_znormalizowane_plus, indeks_ostatniego_elementu)
-    indeks_ostatniego_elementu = int(wartosci_elementu_znormalizowane_plus.shape[0]-1)
-    if (PROG_GORNY_PROCENTY - wartosci_elementu_znormalizowane_plus[indeks_ostatniego_elementu]) > 1 : # arbitralnie przyjeta wartosc
-        wartosci_elementu_znormalizowane_plus = np.concatenate( (wartosci_elementu_znormalizowane_plus,np.array([PROG_GORNY_PROCENTY])) )
+    wartosci_elementu_znormalizowane_minus = np.linspace(PROG_DOLNY_PROCENTY, WARTOSC_NOMINALNA_PROCENTY-ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY, liczba_punktow_na_element)
+    wartosci_elementu_znormalizowane_plus  = np.linspace(WARTOSC_NOMINALNA_PROCENTY + ODSTEP_OD_WAR_NOMINALNEJ_PROCENTY, PROG_GORNY_PROCENTY, liczba_punktow_na_element)
 
     return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
 
@@ -417,7 +401,7 @@ def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen):
     plt.legend(prop={'size': 22})
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(badane_czestotliwosci, slownik_uszkodzen,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
+def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen):
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
 
@@ -465,8 +449,8 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(badane_czestotliwosci, slownik_usz
                     break
             plt.plot(krzywa_nominalna[0],krzywa_nominalna[1],kolor+'o-', label = uszkodzenie)
     plt.axis('equal')
-    plt.xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    plt.ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
     
     plt.legend()
     plt.show()
@@ -724,13 +708,14 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(badane_czestotliwosci, sl
 #------------------------------------------------------------------------------
 #                         PCA
 #------------------------------------------------------------------------------
-def wygenerujMacierzDanychPCA(badane_czestotliwosci, sygnal, typ_widma ,liczba_losowan, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
+def wygenerujMacierzDanychPCA(slownik_uszkodzen_MC): #(badane_czestotliwosci, sygnal, typ_widma ,liczba_losowan, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA):
     """
     GENERUJEMY MACIERZ DANYCH DO ANALIZY PCA
     KAZDA KOLUMNA MACIERZY ODPOWIADA JEDNEMU WEKTOROWI POMIAROWEMU
     """
-    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo( badane_czestotliwosci, sygnal, typ_widma ,elementy, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
-    Liczba_wymiarow  =  badane_czestotliwosci.shape[0] # liczba wymiarow w przestrzeni pomiarowej
+##    slownik_uszkodzen_MC = slownikUszkodzenMonteCarlo( badane_czestotliwosci, sygnal, typ_widma ,elementy, liczba_punktow_na_element ,tolerancja ,liczba_losowanMC = liczba_losowan)
+##    Liczba_wymiarow  =  badane_czestotliwosci.shape[0] # liczba wymiarow w przestrzeni pomiarowej
+    Liczba_wymiarow = slownik_uszkodzen_MC['Nominalne'][0].shape[0]
     X = np.array([])
     for uszkodzenie in slownik_uszkodzen_MC:
         if uszkodzenie == 'Nominalne':
