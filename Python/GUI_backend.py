@@ -513,6 +513,75 @@ def odlegloscMahalanobisa(x,y,C):
     return np.sqrt(s)
 
 
+#-------------------------------------------------------------------------------------------
+def g(x,c1,c2):
+    a = c2 - c1
+    r = x - c1
+    return (np.dot(a,r) / np.dot(a,a))
+#-------------------------------------------------------------------------------------------
+def h(g_od_x):
+    if g_od_x <= 0 : return 0
+    if g_od_x >= 1 : return 1
+    return g_od_x
+#-------------------------------------------------------------------------------------------
+def DRB(x,c1,c2,s1,s2):
+    g_od_x = g(x,c1,c2)
+    w = c1 + (c2-c1) * h(g_od_x) # (c2 - c1) = a (5.11)
+    s = s1
+    if s2 > s : s = s2 # wybieramy wieksze std
+    r = x - w # pomocniczy wektor
+    exp_arg = ( (-1) / (2*s*s) ) * np.dot(r,r)
+    return np.exp(exp_arg)
 
+#-------------------------------------------------------------------------------------------
+def wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_sygnalu):
+
+    koncowka = ''
+    if typ_sygnalu == 'Sinc' : koncowka = 'Sinc'
+    else : koncowka = 'Multisin'
+    
+    nazwa_katalogu = nazwa_ukladu + '/Slowniki_' + koncowka + '/std_PCA' + str(liczba_skladowych_glownych)
+    
+    os.chdir(SCIEZKA_DO_SLOWNIKOW + '/' + nazwa_katalogu)
+
+##    print(os.getcwd())
+    
+    slownik_std = {}
+    lista_plikow = os.listdir()
+    for nazwa_pliku in lista_plikow:
+        indeks_kropki = nazwa_pliku.find('.')
+        sygnatura = nazwa_pliku[:indeks_kropki]
+        slownik_std[sygnatura] = np.load(nazwa_pliku) # do slownika mozna dodawac nowe elementy w ten sposob
+
+    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    return slownik_std
+#-------------------------------------------------------------------------------------------
+def KlasyfikacjaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
+    slownik_wynikow = {}
+    klucze = list(slownik_uszkodzen.keys())
+    liczba_punktow = 0
+    for klucz in klucze :
+        if klucz != 'Nominalne':
+            liczba_punktow = slownik_uszkodzen[klucz].shape[0]
+            break
+    
+    for uszkodzenie in slownik_uszkodzen:
+        if uszkodzenie == 'Nominalne' : continue # klasyfikacja uszkodzenia -> stwierdzono juz ze uklad jest uszkodzony
+        slownik_wynikow[uszkodzenie] = 0
+        for i in range(liczba_punktow - 1):
+            c1 = slownik_uszkodzen[uszkodzenie][i]
+            c2 = slownik_uszkodzen[uszkodzenie][i+1]
+            s1 = slownik_odchylen_std[uszkodzenie][i]
+            s2 = slownik_odchylen_std[uszkodzenie][i+1]
+            slownik_wynikow[uszkodzenie] += DRB(pomiar,c1,c2,s1,s1)
+
+    wynik_max = 0
+    etykieta = ''
+    for uszkodzenie in slownik_wynikow:
+        if slownik_wynikow[uszkodzenie] > wynik_max:
+            wynik_max = slownik_wynikow[uszkodzenie]
+            etykieta = uszkodzenie
+    
+    return wynik_max, etykieta
 ###############################################################################################################################
 
