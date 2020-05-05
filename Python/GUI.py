@@ -80,7 +80,7 @@ def ZamknijProgram():
     okno.destroy()
 
 def WyrysujDane():
-    backend.WyrysujDane()
+    backend.WyrysujDane(wyborTypuPomiaru.get())
 
 def WyrysujSlownik():
     backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get(), wyborTypuPomiaru.get())
