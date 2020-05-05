@@ -48,7 +48,7 @@ widmoPC = np.array([])
 widmoMCU = np.array([])
 ##slownik_uszkodzen_PCA2 = {} # zmienna globalna zawierajaca slownik uszkodzen
 ##slownik_uszkodzen_PCA3 = {} # zmienna globalna zawierajaca slownik uszkodzen
-czestotliwosci_multisin = np.array([])
+czestotliwosci_multisin = np.linspace(1,10,10) # raster czestotliwosci multisin
 czestotliwosci_sinc = np.array([])
 
 
@@ -58,11 +58,16 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
     global wyniki_pomiaru
     global slownik_uszkodzen
     global widmoPC
+    global widmoMCU
     global czestotliwosci_multisin
     global czestotliwosci_sinc
 
+
+    czestotliwosci_sinc     = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+    czestotliwosci_multisin = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin')
     wynik = ''
     print(typ_pomiaru_string)
+    #print(typ_pomiaru)
     print(liczba_skladowych_glownych)
 
     
@@ -72,18 +77,20 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         delay = int(opoznienie)
         if delay > DELAY_MAX : delay = DELAY_MAX
         
-        if (typ_pomiaru == POMIAR_IMPULSOWY) : wyniki_pomiaru = PomiarImp(delay)
+        if (typ_pomiaru == POMIAR_IMPULSOWY) :
+            Generacja(czestotliwosc,2) # generujemy sinc'a
+            wyniki_pomiaru = PomiarImp(delay)
         else : wyniki_pomiaru = PomiarOkres(delay)
 
         
         
     if (opcje_pomiaru["Widmo na MCU"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            WidmoSinc(czestotliwosci_sinc, czestotliwosc)
+            widmoMCU = WidmoSinc(czestotliwosci_sinc)
         elif (typ_pomiaru == POMIAR_MULTISIN) :
-            WidmoMultiSin(czestotliwosci_multisin, czestotliwosc)
+            widmoMCU = WidmoMultiSin(czestotliwosc)
         else :
-            WidmoSinus(czestotliwosc)
+            widmoMCU = WidmoSinus(czestotliwosc)
 
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
@@ -91,7 +98,7 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
         if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, x)
         else : x = np.matmul(fi2, x) # domyslnie 2 skladowe glowne
-        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych) :
+        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
             wynik = 'Nominalne'
         else :
             slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string ) 
@@ -102,19 +109,26 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
             
         
     ZamknijCOM(portCOM)
-    widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
 ##    print(widmoPC[1:11])
-    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu)
+    if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu,typ_pomiaru_string)
     if (opcje_pomiaru["Zapisz widmo PC"]) :
-        dane_do_zapisu = widmoPC[1:11] # na razie tak :)
-        zapisDanych(dane_do_zapisu,'widmoPC',nazwa_ukladu)
-    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU',nazwa_ukladu)
+        if (typ_pomiaru == POMIAR_IMPULSOWY) :
+            widmoPC,frq = ObliczWidmo('TF',wyniki_pomiaru,PER_INT, czestotliwosci_sinc)
+        else :
+            widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+            widmoPC = widmoPC[1:11]
+        zapisDanych(widmoPC,'widmoPC',nazwa_ukladu,typ_pomiaru_string)
+    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU',nazwa_ukladu,typ_pomiaru_string)
     return wynik
 #-------------------------------------------------------------------------------------------
-def WyrysujDane():
+def WyrysujDane(typ_sygnalu):
+    typ_pomiaru = ''
+    
+    if typ_sygnalu == 'Sinc' : typ_pomiaru = 'TF'
+    else : typ_pomiaru = 'FFT'
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
-    widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
-    funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq)
+    widmoPC,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
+    funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq, typ_pomiaru)
 
 #-------------------------------------------------------------------------------------------
 def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomiary = False):
@@ -128,20 +142,25 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
         x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
         funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
     if pomiary : #and (type(p) is np.ndarray ): 
-        p = WczytajPomiary(nazwa_ukladu)
+        p = WczytajPomiary(nazwa_ukladu, typ_slownika )
         if (type(p) is np.ndarray ):  # sprawdzenie czy sa pomiary
             p = np.transpose(p)
             if liczba_skladowych_glownych == 3: p = np.matmul( fi3, p )
             else :
                 p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
                 funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+##    os.chdir(SCIEZKA_DO_SLOWNIKOW)
     if liczba_skladowych_glownych == 3:
         funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen_PCA3, p)
     else : funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen_PCA2)
 
 
 #-------------------------------------------------------------------------------------------
-def WczytajPomiary(nazwa_ukladu):
+def WczytajPomiary(nazwa_ukladu, typ_pomiaru_string):
+
+    katalog = 'Multisin'
+    if typ_pomiaru_string == 'Sinc' : katalog = 'Sinc'
+    
     data = datetime.datetime.now()
     #sprawdzenie lokalizacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
@@ -149,9 +168,10 @@ def WczytajPomiary(nazwa_ukladu):
     os.chdir('..') # przejscie katalog wyzej, do glownego katalogu programu
     if not(os.path.exists('Pomiary')): return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
     os.chdir('Pomiary')
-    nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day)
+    nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day) + '/' + katalog
     if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
         print("Nie ma katalogu")
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
         return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
     os.chdir(nazwa_katalogu_z_pomiarem)
 
@@ -238,10 +258,11 @@ def daneADCnaNapiecie(dane):
     napiecie = ( (dane - ADC_OFFSET )/ ADC_MAX ) * ADC_VREF
     return napiecie
 #-------------------------------------------------------------------------------------------
-def WidmoMultiSin(tablica_czestotliwosci, czestotliwosc_podstawowa):
-    indeksy = tablica_czestotliwosci // czestotliwosc_podstawowa
+def WidmoMultiSin(czestotliwosc):
+    indeksy = np.linspace(1,10,10)
     indeksy = indeksy.astype('uint16')
-
+    widmo_tablica = np.array([])
+    
     for k in indeksy:
         k_string = uint16NaStringa(k)
         ramka = 'F'+' '+ k_string + ' ' + TERMINATOR
@@ -251,15 +272,22 @@ def WidmoMultiSin(tablica_czestotliwosci, czestotliwosc_podstawowa):
         dane = dane.strip(TERMINATOR)
         dane = dane.split()
         widmo = funkcje.listUint2Float(dane)
-        print(k,". widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
+        print(k * czestotliwosc," Hz widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
+        widmo_tablica = np.concatenate( ( widmo_tablica, np.array([widmo]) ) )
+
+    return widmo_tablica
 #-------------------------------------------------------------------------------------------
 def WidmoSinus(czestotliwosc_podstawowa):
     f = np.array([czestotliwosc_podstawowa])
-    WidmoMultiSin(f,czestotliwosc_podstawowa)
+    widmo = WidmoMultiSin(f)
+
+    return widmo
 #-------------------------------------------------------------------------------------------
-def WidmoSinc(tablica_czestotliwosci, czestotliwosc_podstawowa):
-    frq = tablica_czestotliwosci // czestotliwosc_podstawowa
+def WidmoSinc(tablica_czestotliwosci):
+    #frq = tablica_czestotliwosci // czestotliwosc_podstawowa
+    frq = tablica_czestotliwosci
     frq = frq.astype('uint16')
+    widmo_tablica = np.array([])
 
     for f in frq:
         f_string = uint16NaStringa(f)
@@ -271,6 +299,9 @@ def WidmoSinc(tablica_czestotliwosci, czestotliwosc_podstawowa):
         dane = dane.split()
         widmo = funkcje.listUint2Float(dane)
         print(f,". widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
+        widmo_tablica = np.concatenate( ( widmo_tablica, np.array([widmo]) ) )
+
+    return widmo_tablica
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
     if frq > max(F_MAX) : frq = max(F_MAX) # blad!!!!
@@ -388,10 +419,18 @@ def wczytajMacierzPCA(nazwa_ukladu, typ_slownika):
     
 #-------------------------------------------------------------------------------------------
 
-def ObliczWidmo(typ_widma,dane,PER):
+def ObliczWidmo(typ_widma,dane,PER, czestotliwosci = np.array([0])):
     fs = F_CPU/(PER + 1) # czestotliwosc probkowania
-    if typ_widma == 'FFT':
-        n = len(dane) # length of the signal
+    n = len(dane) # length of the signal
+    if typ_widma == 'TF':
+        Ts = 1/fs
+        T = n * Ts
+        t = np.linspace(0,1,n) * T
+        if czestotliwosci[0] ==0  : frq = np.linspace( (1/T), 100 * (1/T), 1000 )
+        else : frq = czestotliwosci
+        (ReU,ImU) = funkcje.TransformataFourieraSinc(dane, t, frq)
+        widmo = np.sqrt( ReU*ReU + ImU*ImU )
+    else : # domyslnie FFT
         k = np.arange(n)
         frq = k * (fs/n) # czestotliwosc - widmo sie powiela!
         frq = frq[range(int(n/2))] # bierzemy tylko polowe, zeby nie powielac widma
@@ -402,7 +441,7 @@ def ObliczWidmo(typ_widma,dane,PER):
     return widmo,frq
 #-------------------------------------------------------------------------------------------
 
-def zapisDanych(dane,etykieta_pliku,nazwa_ukladu):
+def zapisDanych(dane,etykieta_pliku,nazwa_ukladu, typ_pomiaru_string):
     dane = np.asarray(dane)
     data = datetime.datetime.now()
     nazwa_pliku = etykieta_pliku + '_' + str( data.hour ) + '-' + str( data.minute )+ '-' + str( data.second )
@@ -419,6 +458,15 @@ def zapisDanych(dane,etykieta_pliku,nazwa_ukladu):
         # jezeli folder nie istnieje tworzymy go
         os.mkdir(nazwa_katalogu_z_pomiarem)
     os.chdir(nazwa_katalogu_z_pomiarem)
+
+    katalog = 'Multisin'
+    if typ_pomiaru_string == 'Sinc' : katalog = 'Sinc'
+
+    if not(os.path.exists(katalog)):
+        # jezeli folder nie istnieje tworzymy go
+        os.mkdir(katalog)
+    os.chdir(katalog)
+    
     np.save(nazwa_pliku,dane)
     os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
     
@@ -446,14 +494,14 @@ def odlegloscPuntuOdSlownika(slownik, punkt):
     return d_min_slownik
     
 #-------------------------------------------------------------------------------------------
-def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt, liczba_skladowych_glownych):
+def SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu,punkt, liczba_skladowych_glownych, typ_slownika):
     """
     Sprawdzenie czy odleglosc Mahalanobisa miedzy punktem pomiarowym, a
     wyznaczonym w symulajci centrum jest mniejsza od wartosci granicznej
     """
 
 
-    wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu, liczba_skladowych_glownych)
+    wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu, liczba_skladowych_glownych, typ_slownika)
     s = odlegloscMahalanobisa(punkt, wartosc_srednia, C1)
 
     os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
@@ -577,4 +625,17 @@ def KlasyfikacjaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
             if wynik > slownik_wynikow[uszkodzenie] : slownik_wynikow[uszkodzenie] = wynik
     return slownik_wynikow
 ###############################################################################################################################
+#-------------------------------------------------------------------------------------------
+def WczytanieCzestotliwosci(nazwa_ukladu, typ_slownika):
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
 
+    if typ_slownika == 'Sinc' : os.chdir(nazwa_ukladu+'/Slowniki_Sinc')
+    else : os.chdir(nazwa_ukladu+'/Slowniki_Multisin')
+
+    f = np.load("f.npy")
+
+    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    
+    return f
