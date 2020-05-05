@@ -4,9 +4,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import struct
 
-def wyrysuj_okres(dane,widmo,frq):
+def wyrysuj_okres(dane,widmo,frq,typ_pomiaru):
     
-
+    typ_rysowania = 'bo'
+    if typ_pomiaru == 'TF' : typ_rysowania = 'b-'
+    
     widmo_dB = 20 * np.log10(widmo)
 
     fig, ax = plt.subplots(2,1)
@@ -14,7 +16,7 @@ def wyrysuj_okres(dane,widmo,frq):
     ax[0].set_xlabel('Probka n')
     ax[0].set_ylabel('U(t) [V]')
     ax[0].set_title('Probki z ADC')
-    ax[1].plot( frq,widmo_dB,'bo') # plotting the spectrum
+    ax[1].plot( frq,widmo_dB,typ_rysowania) # plotting the spectrum
     ax[1].set_xscale('log')
     ax[1].set_xlabel('Czestotliwosc [Hz]')
     ax[1].set_ylabel('|Y(f)| dB')
@@ -113,3 +115,25 @@ def wyznaczElipse(macierz_skalujaca, odleglosc_Mahalanobisa, srodek):
     y = y.reshape((y.shape[1],))
     
     return x,y
+#-------------------------------------------------------------------------------------------
+
+def TransformataFourieraSinc(sygnal,tn,frq):
+    i = 0
+    ReU = np.zeros(len(frq))
+    ImU = np.zeros(len(frq))
+    #un = un/4095 # wyniki sa juz w postaci napiecia!
+    un = sygnal - sygnal[0]
+    #print(un.shape)
+    #print(tn.shape)
+    for f in frq:
+        w = 2 * np.pi * f
+        sin_w_tn = np.sin(w*tn)
+        cos_w_tn = np.cos(w*tn)
+        du_dt = ( ( un[1:] - un[:-1] ) / ( tn[1:] - tn[:-1] ) )
+        
+        ReU[i] = sum( ( 1/w)*( un[1:] * sin_w_tn[1:] - un[:-1] * sin_w_tn[:-1] ) + du_dt * ((cos_w_tn[1:] - cos_w_tn[:-1]) / (w*w) ) )
+        ImU[i] = sum( (-1/w)*( un[1:] * cos_w_tn[1:] - un[:-1] * cos_w_tn[:-1] ) + du_dt * ((sin_w_tn[1:] - sin_w_tn[:-1]) / (w*w) ) )
+        
+        i = i + 1
+    
+    return (ReU,ImU)
