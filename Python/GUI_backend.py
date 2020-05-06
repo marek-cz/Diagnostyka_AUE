@@ -44,83 +44,51 @@ os.chdir('..')
 port_szeregowy = 0
 PER_INT = 31
 wyniki_pomiaru = [1,2,3,4,5,6,7,11,9]
-widmoPC = np.array([])
-widmoMCU = np.array([])
-##slownik_uszkodzen_PCA2 = {} # zmienna globalna zawierajaca slownik uszkodzen
-##slownik_uszkodzen_PCA3 = {} # zmienna globalna zawierajaca slownik uszkodzen
-czestotliwosci_multisin = np.linspace(1,10,10) # raster czestotliwosci multisin
-czestotliwosci_sinc = np.array([])
 
 
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
+
     global wyniki_pomiaru
-    global slownik_uszkodzen
-    global widmoPC
-    global widmoMCU
-    global czestotliwosci_multisin
-    global czestotliwosci_sinc
-
-
     czestotliwosci_sinc     = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
-    czestotliwosci_multisin = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin')
     wynik = ''
-##    print(typ_pomiaru_string)
-##    print(typ_pomiaru)
-##    print(liczba_skladowych_glownych)
-
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
-    if (opcje_pomiaru["Generacja"]) : Generacja(czestotliwosc,typ_pomiaru)
-    if (opcje_pomiaru["Pomiar"]) :
+    if (opcje_pomiaru["Generacja"] and not(opcje_pomiaru["Diagnozuj"]) ) : Generacja(czestotliwosc,typ_pomiaru)
+    if (opcje_pomiaru["Pomiar"] and not(opcje_pomiaru["Diagnozuj"]) ) :
         delay = int(opoznienie)
         if delay > DELAY_MAX : delay = DELAY_MAX
-        
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            Generacja(czestotliwosc,2) # generujemy sinc'a
+            Generacja(czestotliwosc,2) # generujemy sinc'a - mozliwosc wplywniecia na czestotliwosc przebiegu
             wyniki_pomiaru = PomiarImp(delay)
         else : wyniki_pomiaru = PomiarOkres(delay)
 
-        
-        
-    if (opcje_pomiaru["Widmo na MCU"]) :
-        if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            widmoMCU = WidmoSinc(czestotliwosci_sinc)
-        elif (typ_pomiaru == POMIAR_MULTISIN) :
-            widmoMCU = WidmoMultiSin(czestotliwosc)
-        else :
-            widmoMCU = WidmoSinus(czestotliwosc)
-
     if (opcje_pomiaru["Diagnozuj"]) :
-        widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
-        x = widmoPC[1:11] # na razie tak :)
-##        fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
-##        if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, x)
-##        else : x = np.matmul(fi2, x) # domyslnie 2 skladowe glowne
-##        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
-##            wynik = 'Nominalne'
-##        else :
-##            slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string ) 
-##            if liczba_skladowych_glownych == 3 : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
-##            else : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
-####            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x)
-##            wynik = WybierzEtykieteMIN(odleglosc_slownik)
-        if metoda_klasyfikacji == 'Klasyczna' : wynik = KlasyfikacjaKlasyczna(x, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych)
+        #############################
+        #   wykowanac generacje (o ile generacja odpowiedniego przebiegu juz nie trwa -> przemyslec!) i pomiar!
+        #############################
+        widmo = wyznaczWidmo( opcje_pomiaru["Widmo na MCU"], typ_pomiaru_string, wyniki_pomiaru, PER_INT ) 
+        
+        if metoda_klasyfikacji == 'Klasyczna' : wynik = KlasyfikacjaKlasyczna( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+        elif metoda_klasyfikacji == 'DRB' : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+        else : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
             
         
     ZamknijCOM(portCOM)
-##    print(widmoPC[1:11])
+    
     if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu,typ_pomiaru_string)
-    if (opcje_pomiaru["Zapisz widmo PC"]) :
+    if (opcje_pomiaru["Zapisz widmo"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            widmoPC,frq = ObliczWidmo('TF',wyniki_pomiaru,PER_INT, czestotliwosci_sinc)
+            widmo,frq = ObliczWidmo('TF',wyniki_pomiaru,PER_INT, czestotliwosci_sinc)
         else :
-            widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
-            widmoPC = widmoPC[1:11]
-        zapisDanych(widmoPC,'widmoPC',nazwa_ukladu,typ_pomiaru_string)
-    if (opcje_pomiaru["Zapisz widmo MCU"]) : zapisDanych(widmoMCU,'widmoMCU',nazwa_ukladu,typ_pomiaru_string)
+            widmo,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
+            widmo = widmo[1:11]
+        zapisDanych(widmo,'widmo',nazwa_ukladu,typ_pomiaru_string)
+
+    
     return wynik
+
 #-------------------------------------------------------------------------------------------
 def WyrysujDane(typ_sygnalu):
     typ_pomiaru = ''
@@ -128,8 +96,8 @@ def WyrysujDane(typ_sygnalu):
     if typ_sygnalu == 'Sinc' : typ_pomiaru = 'TF'
     else : typ_pomiaru = 'FFT'
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
-    widmoPC,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
-    funkcje.wyrysuj_okres(wyniki_pomiaru,widmoPC,frq, typ_pomiaru)
+    widmo,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
+    funkcje.wyrysuj_okres(wyniki_pomiaru, widmo, frq, typ_pomiaru)
 
 #-------------------------------------------------------------------------------------------
 def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomiary = False):
@@ -180,7 +148,7 @@ def WczytajPomiary(nazwa_ukladu, typ_pomiaru_string):
     pomiary = np.array([])
 
     for plik in lista_plikow:
-        if plik.find('widmoPC') != -1 :
+        if plik.find('widmo') != -1 :
             pomiar = np.load(plik)
             pomiary = np.concatenate(( pomiary, pomiar) )
     pomiary = pomiary.reshape( ( pomiary.shape[0] // 10, 10 ) )
@@ -303,6 +271,47 @@ def WidmoSinc(tablica_czestotliwosci):
         widmo_tablica = np.concatenate( ( widmo_tablica, np.array([widmo]) ) )
 
     return widmo_tablica
+#-------------------------------------------------------------------------------------------
+def wyznaczWidmo(widmo_na_MCU, typ_sygnalu, sygnal, PER_INT):
+    """
+    Wysokopoziomowa funkcja sterujaca wyznaczeniem widma. Argument
+    widmo_na_MCU jest flaga decydujaca o tym czy widmo jest liczone
+    na XMEGA czy tez na PC
+    """
+    
+    if (widmo_na_MCU) : widmo =  widmoNaMCU(typ_sygnalu)
+    else : widmo = widmoNaPC( typ_sygnalu, sygnal, PER_INT )
+
+    return widmo
+#-------------------------------------------------------------------------------------------
+def widmoNaMCU(typ_sygnalu):
+    """
+    Wysokopoziomowa funkcja wyzwalajaca obliczenia widma na MCU XMEGA
+    """
+    if typ_sygnalu == 'Sinc' :
+        f = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+        widmo = WidmoSinc(f)
+    else :
+        f = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin') # domyslnie Multisin
+        f = f[0]
+        widmo = WidmoMultiSin(f)
+
+    return widmo
+#-------------------------------------------------------------------------------------------
+def widmoNaPC( typ_sygnalu, sygnal, PER_INT ):
+    """
+    Wysokopoziomwoa funckja wyzwalajaca obliczenia widma na PC
+    """
+    if typ_sygnalu == 'Sinc' :
+        typ_pomiaru = 'TF'
+        f = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+        widmo,frq = ObliczWidmo(typ_pomiaru , sygnal, PER_INT, f)
+    else :
+        typ_pomiaru = 'FFT'
+        widmo,frq = ObliczWidmo(typ_pomiaru , sygnal, PER_INT )
+        widmo = widmo[1:11] # na razie tak, w razie zmiany rastra czestotliwosci multisin -> pomyslimy :)
+    
+    return widmo
 #-------------------------------------------------------------------------------------------
 def DobierzPER(frq):
     if frq > max(F_MAX) : frq = max(F_MAX) # blad!!!!
@@ -544,7 +553,18 @@ def WybierzEtykieteMIN(slownik_odleglosci):
         if slownik_odleglosci[element] < d_min :
             d_min, etykieta = slownik_odleglosci[element], element
 
+    print(etykieta,' : ',d_min)
+    return etykieta
+#-------------------------------------------------------------------------------------------
 
+def WybierzEtykieteMAX(slownik_odleglosci):
+    d_max, etykieta = slownik_odleglosci['R1-'], 'R1-' # wybrana jedna wartosc
+    for element in slownik_odleglosci:
+        if slownik_odleglosci[element] > d_max :
+            d_max, etykieta = slownik_odleglosci[element], element
+
+
+    print(etykieta,' : ',d_max)
     return etykieta
 #-------------------------------------------------------------------------------------------
 def odlegloscMahalanobisa(x,y,C):
@@ -603,7 +623,7 @@ def wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_sygnalu):
     os.chdir(SCIEZKA_DO_SLOWNIKOW)
     return slownik_std
 #-------------------------------------------------------------------------------------------
-def KlasyfikacjaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
+def WarstwaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
     slownik_wynikow = {}
     klucze = list(slownik_uszkodzen.keys())
     liczba_punktow = 0
@@ -647,6 +667,8 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
+
+    print(x)
     
     if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
         wynik = 'Nominalne'
@@ -656,6 +678,31 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
             odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
         else :
             odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
-            wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
+        wynik = WybierzEtykieteMIN(odleglosc_slownik)
+
+    return wynik
+#-------------------------------------------------------------------------------------------
+def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_glownych):
+    """
+    Klasyfikacja z wykorzystaniem Dwucentrowych Radialnych funkcji Bazowych (DRB), ktore
+    zwracaja wartosc w zaleznosci od odleglosci punktu od odcinka wyznaczonego przez punkty
+    symulacyjne
+    """
+    fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
+    if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
+    else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
+
+    print(x)
+    
+    if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
+        wynik = 'Nominalne'
+    else :
+        slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string )
+        slownik_odchylen_std = wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_pomiaru_string)
+        if liczba_skladowych_glownych == 3 :
+            slownik_wynikow = WarstwaDRB(slownik_uszkodzen_PCA3, x, slownik_odchylen_std )
+        else :
+            slownik_wynikow = WarstwaDRB(slownik_uszkodzen_PCA2, x, slownik_odchylen_std ) # domyslnie 2 skladowe glowne
+        wynik = WybierzEtykieteMAX( slownik_wynikow )
 
     return wynik
