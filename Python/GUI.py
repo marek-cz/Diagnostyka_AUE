@@ -21,7 +21,7 @@ MetodaKlasyfikacji = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Sinc"]
 czestotliwosc = 100
 opoznienie_ms = 100
-opcje = ["Generacja","Pomiar","Widmo na MCU","Zapisz pomiar","Zapisz widmo PC","Zapisz widmo MCU","Diagnozuj"]
+opcje = ["Generacja","Pomiar","Zapisz pomiar","Zapisz widmo","Widmo na MCU","Diagnozuj"]
 zmienneOpcji = {} # slownik zawierajacy zmienne przypisane poszczegolnym opcjom
 for opcja in opcje:
     zmienneOpcji.setdefault(opcja, tk.IntVar())
