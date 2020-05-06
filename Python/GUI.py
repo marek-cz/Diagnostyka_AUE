@@ -17,6 +17,7 @@ wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru CO
 wyborTypuPomiaru = tk.StringVar()
 wyborUkladu = tk.StringVar()
 ileSkladowychPCA = tk.IntVar()
+MetodaKlasyfikacji = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Sinc"]
 czestotliwosc = 100
 opoznienie_ms = 100
@@ -29,6 +30,7 @@ for opcja in opcje:
 backend.os.chdir('slowniki_uszkodzen')
 uklady = []
 UKLAD_DOMYSLNY = 'HPF_MFB'
+METODA_DOMYSLNA = 'DRB'
 licznik = 1
 #------------------------------------------
 #           FUNKCJE
@@ -42,7 +44,7 @@ def funkcjaPrzycisku1():
     for opcja in zmienneOpcji:
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
-    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get())
+    wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get())
     if not (licznik % 15) :
         wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
         licznik = 1
@@ -60,6 +62,10 @@ def zmianaMetodyPomiaru(*args): # function called when var changes
 
 def zmianaUkladu(*args):
     xyz = 0 # nic :)
+
+def zmianaMetodyKlasyfikacji(*args):
+    print(MetodaKlasyfikacji.get())
+    return 0
 
 def zmianaPCA(*args):
     print("liczba skladowych glownych = ",ileSkladowychPCA.get())
@@ -134,6 +140,14 @@ PCA_menu = tk.Menu(menu1, tearoff=0)#, postcommand=WypiszUklady)
 PCA_menu.add_radiobutton(label = "2 składowe główne", value = 2, variable = ileSkladowychPCA)
 PCA_menu.add_radiobutton(label = "3 składowe główne", value = 3, variable = ileSkladowychPCA)
 menu1.add_cascade(label = 'PCA',menu = PCA_menu)
+
+
+MetodaKlasyfikacji.set(METODA_DOMYSLNA)
+MetodaKlasyfikacji.trace('w',zmianaMetodyKlasyfikacji) # funkcja callback wywolywana za kazdym razem gdy uzytkownik zmieni metode klasyfikacji
+Klasyfikacja_menu = tk.Menu(menu1, tearoff=0)
+Klasyfikacja_menu.add_radiobutton(label = "Klasyczna", value = 'Klasyczna', variable = MetodaKlasyfikacji)
+Klasyfikacja_menu.add_radiobutton(label = "DRB", value = 'DRB', variable = MetodaKlasyfikacji)
+menu1.add_cascade(label = 'Klasyfikacja',menu = Klasyfikacja_menu)
 
 okno.config(menu = menu1)
 #------------------------------------------------------------------------------------------------------
