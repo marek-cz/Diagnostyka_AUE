@@ -54,7 +54,7 @@ czestotliwosci_sinc = np.array([])
 
 #-------------------------------------------------------------------------------------------
 
-def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych):
+def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
     global wyniki_pomiaru
     global slownik_uszkodzen
     global widmoPC
@@ -66,9 +66,9 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
     czestotliwosci_sinc     = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
     czestotliwosci_multisin = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin')
     wynik = ''
-    print(typ_pomiaru_string)
-    #print(typ_pomiaru)
-    print(liczba_skladowych_glownych)
+##    print(typ_pomiaru_string)
+##    print(typ_pomiaru)
+##    print(liczba_skladowych_glownych)
 
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
@@ -95,17 +95,18 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
     if (opcje_pomiaru["Diagnozuj"]) :
         widmoPC,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
         x = widmoPC[1:11] # na razie tak :)
-        fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
-        if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, x)
-        else : x = np.matmul(fi2, x) # domyslnie 2 skladowe glowne
-        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
-            wynik = 'Nominalne'
-        else :
-            slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string ) 
-            if liczba_skladowych_glownych == 3 : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
-            else : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
-##            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x)
-            wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
+##        fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
+##        if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, x)
+##        else : x = np.matmul(fi2, x) # domyslnie 2 skladowe glowne
+##        if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
+##            wynik = 'Nominalne'
+##        else :
+##            slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string ) 
+##            if liczba_skladowych_glownych == 3 : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
+##            else : odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
+####            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x)
+##            wynik = WybierzEtykieteMIN(odleglosc_slownik)
+        if metoda_klasyfikacji == 'Klasyczna' : wynik = KlasyfikacjaKlasyczna(x, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych)
             
         
     ZamknijCOM(portCOM)
@@ -537,14 +538,12 @@ def WczytajParametryElipsy(nazwa_ukladu, liczba_skladowych_glownych, typ_slownik
     
 #-------------------------------------------------------------------------------------------
 
-def KlasyfikacjaOdleglosc(slownik_odleglosci):
-    d_min, etykieta = slownik_odleglosci['Nominalne'], 'Nominalne'
+def WybierzEtykieteMIN(slownik_odleglosci):
+    d_min, etykieta = slownik_odleglosci['R1-'], 'R1-' # wybrana jedna wartosc
     for element in slownik_odleglosci:
-        print(element,' : ',slownik_odleglosci[element])
         if slownik_odleglosci[element] < d_min :
             d_min, etykieta = slownik_odleglosci[element], element
-    print("___________________________________________________")
-    print("\n")
+
 
     return etykieta
 #-------------------------------------------------------------------------------------------
@@ -639,3 +638,24 @@ def WczytanieCzestotliwosci(nazwa_ukladu, typ_slownika):
     os.chdir(SCIEZKA_DO_SLOWNIKOW)
     
     return f
+#-------------------------------------------------------------------------------------------
+def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_glownych):
+    """
+    Klasyfikacja na podstawie odleglosci punktu pomiarowego od
+    punktow wyznaczonych w symulacji
+    """
+    fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
+    if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
+    else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
+    
+    if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
+        wynik = 'Nominalne'
+    else :
+        slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string )
+        if liczba_skladowych_glownych == 3 :
+            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
+        else :
+            odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
+            wynik = KlasyfikacjaOdleglosc(odleglosc_slownik)
+
+    return wynik
