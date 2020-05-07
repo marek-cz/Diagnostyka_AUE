@@ -73,7 +73,8 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         elif metoda_klasyfikacji == 'DRB' :     wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
         else : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
     ########################################################################################################################       
-        
+
+    NadajRezultatKlasyfikacji(wynik)
     ZamknijCOM(portCOM)
 
     ########################################################################################################################
@@ -88,6 +89,7 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         zapisDanych(widmo,'widmo',nazwa_ukladu,typ_pomiaru_string)
     ########################################################################################################################
 
+    
     return wynik
 
 #-------------------------------------------------------------------------------------------
@@ -400,6 +402,15 @@ def NadajCOM(ramka):
     port_szeregowy.write(ramka.encode()) # nadajemy dane
     dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
     print(dane.decode())
+#-------------------------------------------------------------------------------------------
+def NadajRezultatKlasyfikacji( rezultat ):
+    """
+    Wyslanie do MCU wyniku klasyfikacji, w celu wyswietlenia tej informacji na LCD
+    """
+    if rezultat == 'Nominalne' : rezultat_3_znaki = 'Nom'
+    else : rezultat_3_znaki = rezultat
+    ramka = 'D' + ' ' + rezultat + ' ' + TERMINATOR
+    NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def OtworzCOM(portCOM):
     global port_szeregowy
