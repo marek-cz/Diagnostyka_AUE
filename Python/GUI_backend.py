@@ -27,6 +27,7 @@ TERMINATOR = '$'
 # opcje transmisji
 BAUDRATE = 115200
 TIMEOUT = None
+SINUS = 0
 POMIAR_MULTISIN  = 1
 POMIAR_IMPULSOWY = 2
 
@@ -51,32 +52,32 @@ wyniki_pomiaru = [1,2,3,4,5,6,7,11,9]
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
 
     global wyniki_pomiaru
-    czestotliwosci_sinc     = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+    czestotliwosci_sinc = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
     wynik = ''
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
+    ########################################################################################################################
+    # czesc do analizy "organoleptycznej"
     if (opcje_pomiaru["Generacja"] and not(opcje_pomiaru["Diagnozuj"]) ) : Generacja(czestotliwosc,typ_pomiaru)
-    if (opcje_pomiaru["Pomiar"] and not(opcje_pomiaru["Diagnozuj"]) ) :
-        delay = int(opoznienie)
-        if delay > DELAY_MAX : delay = DELAY_MAX
-        if (typ_pomiaru == POMIAR_IMPULSOWY) :
-            Generacja(czestotliwosc,2) # generujemy sinc'a - mozliwosc wplywniecia na czestotliwosc przebiegu
-            wyniki_pomiaru = PomiarImp(delay)
-        else : wyniki_pomiaru = PomiarOkres(delay)
+    if (opcje_pomiaru["Pomiar"] and not(opcje_pomiaru["Diagnozuj"]) ) : wyniki_pomiaru = Pomiary(opoznienie, typ_pomiaru , czestotliwosc)
+    ########################################################################################################################
 
+    ########################################################################################################################
+    #   diagnoza wybranego ukladu
     if (opcje_pomiaru["Diagnozuj"]) :
-        #############################
-        #   wykowanac generacje (o ile generacja odpowiedniego przebiegu juz nie trwa -> przemyslec!) i pomiar!
-        #############################
-        widmo = wyznaczWidmo( opcje_pomiaru["Widmo na MCU"], typ_pomiaru_string, wyniki_pomiaru, PER_INT ) 
-        
+
+        wyniki_pomiaru = GeneracjaIAkwizycjaDanych( nazwa_ukladu, typ_pomiaru, opoznienie ) # pobudzamy uklad i mierzymy jego odpowiedz
+        widmo = wyznaczWidmo( nazwa_ukladu , opcje_pomiaru["Widmo na MCU"], typ_pomiaru_string, wyniki_pomiaru, PER_INT )# wyznaczenie widma
+        #   KLASYFIKACJA USZKODZEN:
         if metoda_klasyfikacji == 'Klasyczna' : wynik = KlasyfikacjaKlasyczna( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
-        elif metoda_klasyfikacji == 'DRB' : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+        elif metoda_klasyfikacji == 'DRB' :     wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
         else : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
-            
+    ########################################################################################################################       
         
     ZamknijCOM(portCOM)
-    
+
+    ########################################################################################################################
+    #   archiwizacja wynikow pomiaru
     if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu,typ_pomiaru_string)
     if (opcje_pomiaru["Zapisz widmo"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
@@ -85,8 +86,8 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
             widmo,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
             widmo = widmo[1:11]
         zapisDanych(widmo,'widmo',nazwa_ukladu,typ_pomiaru_string)
+    ########################################################################################################################
 
-    
     return wynik
 
 #-------------------------------------------------------------------------------------------
@@ -175,18 +176,18 @@ def uint16NaStringa(uint16):
     return string
 
 #-------------------------------------------------------------------------------------------
-def Generacja(czestotliwosc,przebieg):
+def Generacja(czestotliwosc, typ_sygnalu):
     """
     Przebieg -> indeks w tablicy sinus - 0, multisin - 1, sinc - 2
     """
     global PER_INT
 
-    if (przebieg != 0 ) : # jezeli NIE generujemy sinusa
+    if (typ_sygnalu != SINUS ) : # jezeli NIE generujemy sinusa
         if czestotliwosc > F_MAX[0] : czestotliwosc = F_MAX[0] # zabezpieczenie, sinc i multisin do 2kHz -> 500 probek
     
     PER_INT,liczba_probek = DobierzPER(czestotliwosc)
     PER_string = uint16NaStringa(PER_INT)
-    przebieg_string = KSZTALTY[przebieg] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
+    przebieg_string = KSZTALTY[typ_sygnalu] + KONCOWKA_LICZBA_PROBEK[liczba_probek]
     przebieg = PRZEBIEGI[przebieg_string]
     #ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     ramka = 'G' + ' ' + str(przebieg) + ' ' + PER_string + ' ' + str(liczba_probek) + ' ' + TERMINATOR # pola sa ROZDZIELONE SPACJAMI!
@@ -216,6 +217,19 @@ def PomiarImp(delay):
     napiecie = daneADCnaNapiecie(dane)
     return napiecie
 #-------------------------------------------------------------------------------------------
+def Pomiary(opoznienie, typ_pomiaru, czestotliwosc):
+    """
+    Wysokopoziomowa funkcja wyzwalajaca pomiar
+    """
+    delay = int(opoznienie)
+    if delay > DELAY_MAX : delay = DELAY_MAX
+    if (typ_pomiaru == POMIAR_IMPULSOWY) :
+        Generacja(czestotliwosc, POMIAR_IMPULSOWY) # generujemy sinc'a - mozliwosc sterowania czestotliwosci przebiegu
+        wyniki_pomiaru = PomiarImp(delay)
+    else : wyniki_pomiaru = PomiarOkres(delay)
+
+    return wyniki_pomiaru
+#-------------------------------------------------------------------------------------------
 def daneADCnaNapiecie(dane):
     """
     dane - dane pomiarowe odebrane z XMEGI
@@ -226,6 +240,62 @@ def daneADCnaNapiecie(dane):
     dane = np.asarray(dane).astype('float64')
     napiecie = ( (dane - ADC_OFFSET )/ ADC_MAX ) * ADC_VREF
     return napiecie
+#-------------------------------------------------------------------------------------------
+def GeneracjaIAkwizycjaDanych( nazwa_ukladu, typ_pomiaru, opoznienie ):
+    """
+    Wysokopoziomowa funkcja wyzwalajaca proces generacji wskazanego przebiegu
+    po czym dokonujaca wybranej metody pomiaru
+    Parametry przebiegu sa dostosowane do danych znajdujacych sie w pliku ukladu.
+    Jedynym parametrem na jaki uzytkownik ma wplyw jest opoznienie pomiaru
+    """
+    if typ_pomiaru == POMIAR_IMPULSOWY :
+        # pomiar sinc
+        czestotliwosci_sinc = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+        wyniki_pomiaru = Pomiary( opoznienie , typ_pomiaru , czestotliwosci_sinc[0] ) # czestotliwosc podstawowa jest najmniejsza czestotliwoscia z listy
+        # generacja sinca jest juz obslugiwana w funkcji Pomiary
+    else :
+        # pomiar multisin
+        czestotliwosci_multisin = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin')
+        # w przypadku multisin musimy wyzwolic generacje odpowiedniego przebiegu
+        # ale najpierw sprawdzamy, czy dobry przebieg nie jest juz generowany ->
+        # unikamy w ten sposob niepotrzebnego stanu nieustalonego wynikajacego
+        # ze zmieny przebiegu
+        poprawny_przebieg = SprawdzGenerowanyPrzebieg( PRZEBIEGI['MULTI_SIN_500_NR'], czestotliwosci_multisin[0]  )
+        if ( not( poprawny_przebieg ) ) : # jezeli generowany przebieg NIE jest poprawny -> generujemy odpowiedni przebieg
+            Generacja( czestotliwosci_multisin[0], POMIAR_MULTISIN )
+        # wykonujemy pomiar
+        wyniki_pomiaru = Pomiary( opoznienie , typ_pomiaru, czestotliwosci_multisin[0] )
+
+    return wyniki_pomiaru  
+#-------------------------------------------------------------------------------------------
+def SprawdzGenerowanyPrzebieg( przebieg, czestotliwosc ):
+    """
+    Funckja sprawdza parametry generowanego przebiegu w nastepujacy sposob:
+    Wysyla zapytanie do MCU w postaci "I $"
+    MCU opowiada ramka danych : "I <PRZEBIEG-CHAR> <PER - cyframi> <LICZBA_PROBEK-CHAR> $"
+    Porownujemy paramatry generowanego przebiegu z tym co chcielibysmy aby bylo generowane
+    """
+    ramka_zapytania = 'I' + ' ' + TERMINATOR
+    NadajCOM(ramka_zapytania)
+    odpowiedz_MCU = OdczytajPomiar() # odpowiedz MCU na zapytanie
+    print( "Odpowiedz MCU na zapytanie o parametry : " odpowiedz_MCU )
+    # dzielimy odpowiedz po spacjach
+    odp = odpowiedz_MCU.split(' ')
+    # rezultat np. ['I', '4', '10000', '0', '$']
+    odebrany_przebieg = int(odp[1])
+    odebrany_PER = int(odp[2])
+    odebrana_liczba_probek = int(odp[3])
+    
+    PER , liczba_probek = DobierzPER(czestotliwosc)
+    # sprawdzenie :
+    wynik = int( 3 )
+    if ( przebieg == odebrany_przebieg ) : wynik -= 1
+    if ( PER == odebrany_PER ) : wynik -= 1
+    if ( liczba_probek == odebrana_liczba_probek ) : wynik -= 1
+
+    if wynik == 0 : return True
+    else : return False
+    
 #-------------------------------------------------------------------------------------------
 def WidmoMultiSin(czestotliwosc):
     indeksy = np.linspace(1,10,10)
@@ -272,19 +342,19 @@ def WidmoSinc(tablica_czestotliwosci):
 
     return widmo_tablica
 #-------------------------------------------------------------------------------------------
-def wyznaczWidmo(widmo_na_MCU, typ_sygnalu, sygnal, PER_INT):
+def wyznaczWidmo( nazwa_ukladu ,widmo_na_MCU, typ_sygnalu, sygnal, PER_INT):
     """
     Wysokopoziomowa funkcja sterujaca wyznaczeniem widma. Argument
     widmo_na_MCU jest flaga decydujaca o tym czy widmo jest liczone
     na XMEGA czy tez na PC
     """
     
-    if (widmo_na_MCU) : widmo =  widmoNaMCU(typ_sygnalu)
-    else : widmo = widmoNaPC( typ_sygnalu, sygnal, PER_INT )
+    if (widmo_na_MCU) : widmo =  widmoNaMCU( nazwa_ukladu , typ_sygnalu )
+    else : widmo = widmoNaPC( nazwa_ukladu , typ_sygnalu, sygnal, PER_INT )
 
     return widmo
 #-------------------------------------------------------------------------------------------
-def widmoNaMCU(typ_sygnalu):
+def widmoNaMCU( nazwa_ukladu , typ_sygnalu):
     """
     Wysokopoziomowa funkcja wyzwalajaca obliczenia widma na MCU XMEGA
     """
@@ -298,9 +368,9 @@ def widmoNaMCU(typ_sygnalu):
 
     return widmo
 #-------------------------------------------------------------------------------------------
-def widmoNaPC( typ_sygnalu, sygnal, PER_INT ):
+def widmoNaPC( nazwa_ukladu,  typ_sygnalu, sygnal, PER_INT ):
     """
-    Wysokopoziomwoa funckja wyzwalajaca obliczenia widma na PC
+    Wysokopoziomowa funckja wyzwalajaca obliczenia widma na PC
     """
     if typ_sygnalu == 'Sinc' :
         typ_pomiaru = 'TF'
@@ -322,9 +392,9 @@ def DobierzPER(frq):
     PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
     if PER < PER_MIN : PER = PER_MIN
     if PER > PER_MAX : PER = PER_MAX
-    return PER,indeks
+    
+    return PER,indeks 
 #-------------------------------------------------------------------------------------------
-
 def NadajCOM(ramka):
     port_szeregowy.write(ramka.encode()) # nadajemy dane
     dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
