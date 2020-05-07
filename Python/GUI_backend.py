@@ -278,7 +278,7 @@ def SprawdzGenerowanyPrzebieg( przebieg, czestotliwosc ):
     ramka_zapytania = 'I' + ' ' + TERMINATOR
     NadajCOM(ramka_zapytania)
     odpowiedz_MCU = OdczytajPomiar() # odpowiedz MCU na zapytanie
-    print( "Odpowiedz MCU na zapytanie o parametry : " odpowiedz_MCU )
+    print( "Odpowiedz MCU na zapytanie o parametry : ", odpowiedz_MCU )
     # dzielimy odpowiedz po spacjach
     odp = odpowiedz_MCU.split(' ')
     # rezultat np. ['I', '4', '10000', '0', '$']
@@ -383,13 +383,14 @@ def widmoNaPC( nazwa_ukladu,  typ_sygnalu, sygnal, PER_INT ):
     
     return widmo
 #-------------------------------------------------------------------------------------------
-def DobierzPER(frq):
+def DobierzPER(czestotliwosc):
+    frq = int(czestotliwosc)
     if frq > max(F_MAX) : frq = max(F_MAX) # blad!!!!
     for f_max in F_MAX:
         delta_f = f_max - frq
         indeks = F_MAX.index(f_max)
         if delta_f >=0 : break
-    PER = ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1
+    PER = int( ( F_CPU //( LICZBY_PROBEK[indeks] * frq ) ) - 1 ) # na wszelki wypadek zastosowano jeszcze funkcje int -> pewnosc ze liczba calkowita
     if PER < PER_MIN : PER = PER_MIN
     if PER > PER_MAX : PER = PER_MAX
     
