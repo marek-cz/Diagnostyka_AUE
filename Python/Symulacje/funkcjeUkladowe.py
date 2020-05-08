@@ -149,7 +149,7 @@ def monteCarloNormal(czestotliwosci, elementy_wykluczone_z_losowania = [],elemen
         y,t = odpowiedzCzasowaUkladu( elementy, sygnal, czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA ukladu w stanie nominalnym
         klaster[0] = sygnaly.TransformataFouriera( y, czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
     else : # domyslnie - zwraca CHARAKTERYSTYKE AMPLITUDOWA
-        l, m = uklad.transmitancja(elementy_modyfikacje)
+        l, m = uklad.transmitancja(elementy)
         klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
 ##    l, m = uklad.transmitancja(elementy)
 ##    klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
