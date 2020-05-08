@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from scipy import linalg
+from scipy import signal
 import os
 import sygnaly
 
@@ -129,14 +130,13 @@ def monteCarloUniform(czestotliwosci, elementy_wykluczone_z_losowania = [],eleme
         licznik = licznik +  1
     return klaster
 #------------------------------------------------------------------------------
-def monteCarloNormal(czestotliwosci, elementy_wykluczone_z_losowania = [],elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
+def monteCarloNormal(czestotliwosci, elementy_wykluczone_z_losowania = [],elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC, na_podstawie_odp_czasowej = False, sygnal = np.array([]) ):
     """
     DLA ZADANYCH WARTOSCI ELEMENTOW GENERUJEMY MACIERZ DANYCH
     WOKOL PUNKTU NOMINALNEGO - KLASTER/OBSZAR TOLERANCJI
     ZWRACA MACIERZ W KTOREJ KAZDY WIERSZ JEST PUNKTEM POMIAROWYM,
     WIERSZ 0 TO PUNKT NMOMINALNY
     """
-    elementy_modyfikacje = copy.deepcopy( elementy )
     czestotliwosci = np.asarray(czestotliwosci)
     liczba_czestotliwosci = czestotliwosci.shape[0]
     
@@ -144,35 +144,48 @@ def monteCarloNormal(czestotliwosci, elementy_wykluczone_z_losowania = [],elemen
     liczba_kolumn = liczba_czestotliwosci
     
     klaster = np.zeros( ( liczba_wierszy , liczba_kolumn ) )
-    l, m = uklad.transmitancja(elementy)
-    klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+    if na_podstawie_odp_czasowej : # jezeli flaga jest ustawiona zwraca WIDMO ODPOWIEDZI UKLADU!!!!!!
+        normowanie_w_odp_czasowej = True
+        y,t = odpowiedzCzasowaUkladu( elementy, sygnal, czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA ukladu w stanie nominalnym
+        klaster[0] = sygnaly.TransformataFouriera( y, czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
+    else : # domyslnie - zwraca CHARAKTERYSTYKE AMPLITUDOWA
+        l, m = uklad.transmitancja(elementy_modyfikacje)
+        klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+##    l, m = uklad.transmitancja(elementy)
+##    klaster[0] = charCzestotliwosciowaModul(l, m,czestotliwosci)
     #################################################################################
     #           LOSOWANIE MONTECARLO
     #################################################################################
     licznik = 1
     for i in range(liczba_losowanMC): # MonteCarlo
-        for element in elementy_modyfikacje: # tolerancje
-            if element in elementy_wykluczone_z_losowania :
-                #print("\n\nTen element nie jest losowany: ",element,"\n\n")
-                elementy_modyfikacje[element] = elementy[element]
-            else :
-                if element.find('R') != -1 :
-                    # gdy element jest rezystorem
-                    tol = tolerancja['R']
-                elif element.find('C') != -1 :
-                    # gdy element jest kondensatorem :
-                    tol = tolerancja['C']
-                else :
-                    print("Czegoś nie uwzględniłeś! : ",element)
-                sigma = (elementy[element] * tol )/3
-                elementy_modyfikacje[element] = np.random.normal(elementy[element], sigma)
-                #print(element," : ",elementy_modyfikacje[element])
-        #print(elementy_modyfikacje)
-        l, m = uklad.transmitancja(elementy_modyfikacje)
-        klaster[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
+        elementy_modyfikacje = losowanieRozkladNormalny( elementy, tolerancja, elementy_wykluczone_z_losowania)
+        if na_podstawie_odp_czasowej : # jezeli flaga jest ustawiona zwraca WIDMO ODPOWIEDZI UKLADU!!!!!!
+            normowanie_w_odp_czasowej = True
+            y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA uszkodzonego ukladu!
+            klaster[licznik] = sygnaly.TransformataFouriera( y, czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
+        else : # domyslnie - zwraca CHARAKTERYSTYKE AMPLITUDOWA
+            l, m = uklad.transmitancja(elementy_modyfikacje)
+            klaster[licznik] = charCzestotliwosciowaModul(l, m,czestotliwosci)
         licznik = licznik +  1
     return klaster
 
+#------------------------------------------------------------------------------
+def losowanieRozkladNormalny( elementy, tolerancja , elementy_wykluczone_z_losowania = []):
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    for element in elementy_modyfikacje: # dla kazdego elementu ukladu
+        if element in elementy_wykluczone_z_losowania : # jezeli wartosc elementu ma byc niezmienna
+            elementy_modyfikacje[element] = elementy[element]
+        else : # modyfikacja wartosci elementu w zakresie jego tolerancji
+            if element.find('R') != -1 : # gdy element jest rezystorem
+                tol = tolerancja['R']
+            elif element.find('C') != -1 : # gdy element jest kondensatorem :
+                tol = tolerancja['C']
+            else :
+                print("Czegoś nie uwzględniłeś! : ",element)
+            sigma = (elementy[element] * tol )/3
+            elementy_modyfikacje[element] = np.random.normal(elementy[element], sigma)
+
+    return elementy_modyfikacje   
 #------------------------------------------------------------------------------
 def tolerancjaElementu(element,tolerancja):
     if element.find('R') != -1 :
@@ -246,7 +259,7 @@ def generujWartosciElementowZnormalizowane(liczba_punktow_na_element):
     return (wartosci_elementu_znormalizowane_minus, wartosci_elementu_znormalizowane_plus)
 
 #------------------------------------------------------------------------------
-def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA): # elementy slownika sa macierzami numPy
+def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW, na_podstawie_odp_czasowej = False): # elementy slownika sa macierzami numPy
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
 
@@ -266,9 +279,14 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
         lista = np.zeros((wartosci_minus.shape[0],len(badane_czestotliwosci)))
         for wartosc in wartosci_minus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * widmo_sygnalu
+            if na_podstawie_odp_czasowej :
+                normowanie_w_odp_czasowej = True
+                y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, badane_czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA uszkodzonego ukladu!
+                wartosci = sygnaly.TransformataFouriera( y, badane_czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
+            else : # obliczenia na podstawie wzoru : Y(f) = H(f) * X(f)
+                (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
+                charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
+                wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
@@ -279,17 +297,27 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
         lista = np.zeros((wartosci_plus.shape[0],len(badane_czestotliwosci)))
         for wartosc in wartosci_plus:
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-            wartosci = charAmpl * widmo_sygnalu
+            if na_podstawie_odp_czasowej :
+                normowanie_w_odp_czasowej = True
+                y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, badane_czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA uszkodzonego ukladu!
+                wartosci = sygnaly.TransformataFouriera( y, badane_czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
+            else : # obliczenia na podstawie wzoru : Y(f) = H(f) * X(f)
+                (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
+                charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
+                wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
             lista[i] = wartosci
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
         elementy_modyfikacje = copy.deepcopy( elementy )
 
-    (licznik, mianownik) = uklad.transmitancja(elementy)
-    charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci)
-    wartosci = charAmpl * widmo_sygnalu
+    if na_podstawie_odp_czasowej :
+        normowanie_w_odp_czasowej = True
+        y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, badane_czestotliwosci[0], normowanie_w_odp_czasowej) # odpowiedz CZASOWA uszkodzonego ukladu!
+        wartosci = sygnaly.TransformataFouriera( y, badane_czestotliwosci, not(normowanie_w_odp_czasowej) )  # negacja zeby normowac TYLKO RAZ!
+    else : # obliczenia na podstawie wzoru : Y(f) = H(f) * X(f)
+        (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
+        charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
+        wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
     słownikUszkodzen.setdefault('Nominalne',wartosci)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -297,39 +325,47 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
     return słownikUszkodzen
 
 #------------------------------------------------------------------------------
-def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC): # elementy slownika sa macierzami numPy
+def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC, na_podstawie_odp_czasowej = False): # elementy slownika sa macierzami numPy
 
     elementy_modyfikacje = copy.deepcopy( elementy )
     słownikUszkodzen = {}
     widmo_sygnalu = 0 # inicjalizacja zmiennej
-    
-    if typ_widma == 'TF' :
-        widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
-        print("Licze TF")
-    else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
+
+    if na_podstawie_odp_czasowej :
+        N = len(badane_czestotliwosci)
+        widmo_sygnalu = np.ones(N) # element neutralny mnozenia
+    else :
+        if typ_widma == 'TF' :
+            widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
+            print("Licze TF")
+        else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
 
     wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
+
+    print('widmo_sygnalu = ', widmo_sygnalu)
     
     for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
         klaster = []
         for wartosc in wartosci_minus:
+            print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC ) 
-            klaster.append( char_apl_MC * widmo_sygnalu )
+            char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal ) 
+            klaster.append( char_amp_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
 
     for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
         klaster = []
         for wartosc in wartosci_plus:
+            print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
-            char_apl_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC ) 
-            klaster.append( char_apl_MC * widmo_sygnalu )
+            char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal )
+            klaster.append( char_amp_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
         
-
-    klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC) # punkt nominalny -> obszar tolerancji
+    print("Obszar nominalny")
+    klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal) # punkt nominalny -> obszar tolerancji
     słownikUszkodzen.setdefault('Nominalne',klaster)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -923,3 +959,22 @@ def slownik_odchylen_std(slownik_uszkodzen_MC):
         slownik[uszkodzenie] = odchylenia_std( slownik_uszkodzen_MC[uszkodzenie] )
 
     return slownik
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def odpowiedzCzasowaUkladu(elementy, tablica_napiec_pobudzenia_uint16, czestotliwosc_podstawowa, zamiana_z_probek_na_napiecie = True):
+    pobudzenie = tablica_napiec_pobudzenia_uint16.astype('float32')
+    
+    if zamiana_z_probek_na_napiecie :
+        pobudzenie /= 4095
+        pobudzenie -= pobudzenie[0]
+    
+    n = len(pobudzenie)
+    T = 1/czestotliwosc_podstawowa # czas trwania sygnalu
+    t = np.linspace(0,1,n) * T # wektor czasow
+
+    l,m = uklad.transmitancja(elementy)
+    lti = signal.lti(l, m) # obiekt opisujacy system o zadanej transmitancji
+    t, y, x = signal.lsim2(lti, pobudzenie, t)
+    
+    return y, t
+    
