@@ -32,7 +32,7 @@ def widmo(sygnal,f,Fs = 500):
     return  szukane_widmo
 
 
-def TransformataFouriera(sygnal, frq):
+def TransformataFouriera(sygnal, frq, normowanie = True ):
     """
     Funckja wyznaczająca transformate Fouriera dla liniowej aproksymacji sygnalu
     na częstotliwości (częstotliwościach) zawartych w frq - wektor w ktorym rosnaco
@@ -44,10 +44,11 @@ def TransformataFouriera(sygnal, frq):
     T_ack = 1/frq[0]    # czas akwizycji
     N = len(sygnal)     # liczba probek
 
-    tn = np.arange(0, T_ack, (T_ack / N) )    # wektor czasow
+    #tn = np.arange(0, T_ack, (T_ack / N) )    # wektor czasow
+    tn = np.linspace(0,1,N) * T_ack
     un = sygnal.astype('float32')     # dla uproszczenia zapisu
     un -= un[0]         # usuniecie skladowej stalej interpretowanej przez TF jako impuls prostokatny
-    un = un/4095
+    if normowanie : un = un/4096 # do przemyslenia czy 4095 czy 4096!
     for f in frq:
         w = 2 * np.pi * f
         sin_w_tn = np.sin(w*tn)
