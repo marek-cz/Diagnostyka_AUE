@@ -1,7 +1,7 @@
 import funkcjeUkladowe
 
 PROG = 0.9973 # 3 sigma
-DELTA_S_CONST = 5e-5
+DELTA_S_CONST = funkcjeUkladowe.np.array([[5e-5]])
 
 #---------------------------------------------------------------
 def odlegloscMahalanobisa(x,y,C):
@@ -150,11 +150,11 @@ def PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     ###########################################
     funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu Slowniki_Multisin
 ###########################################################################################################
-def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen):
+def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen, na_podstawie_odp_czasowej = False):
     decyzja = 'T'#input("Czy symulowac macierz danych? T/N ")
     slownik_MC = {} # inicjalizacja -> zmienna widoczna poza if'em
     if decyzja == 'T' :
-        slownik_MC = funkcjeUkladowe.slownikUszkodzenMonteCarlo(f, sygnal, typ_widma)
+        slownik_MC = funkcjeUkladowe.slownikUszkodzenMonteCarlo(f, sygnal, typ_widma, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej)
 ##        X = funkcjeUkladowe.wygenerujMacierzDanychPCA(f, sygnal, typ_widma ,funkcjeUkladowe.uklad.LICZBA_LOSOWAN_MC)
         X = funkcjeUkladowe.wygenerujMacierzDanychPCA( slownik_MC )
         funkcjeUkladowe.np.save("macierz_danych_"+nazwa_ukladu, X)
@@ -200,8 +200,10 @@ f_multisin = RASTER_MULTISIN * f_multisin
 f_sinc = funkcjeUkladowe.uklad.BADANE_CZESTOTLIWOSCI_SINC
 
 slownikUszkodzenMultisin = funkcjeUkladowe.slownikUszkodzen( f_multisin ,sygnal_MULTISIN, 'FFT')
-slownikUszkodzenSinc = funkcjeUkladowe.slownikUszkodzen( f_sinc ,sygnal_SINC, 'TF')
-
+##slownikUszkodzenSinc = funkcjeUkladowe.slownikUszkodzen( f_sinc ,sygnal_SINC, 'TF')
+#   Na podstawie odpowiedzi czasowej :
+slownikUszkodzenSinc = funkcjeUkladowe.slownikUszkodzen( f_sinc ,sygnal_SINC, 'TF', na_podstawie_odp_czasowej = True)
+#
 widmo_MULTISIN  =  funkcjeUkladowe.sygnaly.widmo(sygnal_MULTISIN, f_multisin)
 widmo_SINC      =  funkcjeUkladowe.sygnaly.TransformataFouriera(sygnal_SINC, f_sinc)
 
@@ -254,7 +256,9 @@ funkcjeUkladowe.os.chdir('Slowniki_Sinc')
 
 
 funkcjeUkladowe.np.save('f',f_sinc)
-ObszarTolerancji = widmo_SINC * funkcjeUkladowe.monteCarloNormal( f_sinc ,liczba_losowanMC = funkcjeUkladowe.uklad.LICZBA_LOSOWAN_PUNKT_NOMINALNY)
+##ObszarTolerancji = widmo_SINC * funkcjeUkladowe.monteCarloNormal( f_sinc ,liczba_losowanMC = funkcjeUkladowe.uklad.LICZBA_LOSOWAN_PUNKT_NOMINALNY)
+# na podstawie odpowiedzi czasowej ukladu
+ObszarTolerancji = funkcjeUkladowe.monteCarloNormal(f_sinc, liczba_losowanMC = funkcjeUkladowe.uklad.LICZBA_LOSOWAN_PUNKT_NOMINALNY, na_podstawie_odp_czasowej = True, sygnal = sygnal_SINC)
 Symulacja( ObszarTolerancji, f_sinc, sygnal_SINC, 'TF' , slownikUszkodzenSinc )
 
 
