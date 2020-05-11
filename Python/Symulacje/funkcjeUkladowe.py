@@ -978,3 +978,19 @@ def odpowiedzCzasowaUkladu(elementy, tablica_napiec_pobudzenia_uint16, czestotli
     
     return y, t
     
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+def zapiszSlownikDoPlikuTxt(slownik, nazwa_pliku):
+    file = open(nazwa_pliku, 'w')
+    file.write('{\n')
+    for element in slownik:
+        if element == 'Nominalne' : continue
+        file.write('{')
+        for punkt in slownik[element]:
+            punkt_str = str(punkt)
+            punkt_str = punkt_str.strip('[]')
+            punkt_lista_str = punkt_str.split()
+            punkt_str = punkt_lista_str[0] + ' , ' + punkt_lista_str[1]
+            zapis_do_pliku = '{ ' + punkt_str + ' },\n'
+            file.write(zapis_do_pliku)
+        file.write('}\n')
+    file.write('}\n')
