@@ -25,6 +25,11 @@
 #include "DMA.h"
 #include "ADC.h"
 #include "timery.h"
+#include "slownik.h"
+//----------------------------------------------------
+//----------------------------------------------------
+//				BIBLIOTEKI INNE
+#include "LCD.h"
 //----------------------------------------------------
 //				MAKRA
 #define ROZMIAR_RAMKI_USB_MAX		13
@@ -58,6 +63,12 @@
 #define TRANSFORMATA_FOURIERA		'T'
 #define WIDMO_CZESTOTLIWOSC_Bp		2
 //-------------------------------------
+#define INFORMACJE_O_PRZEBIEGU		'I'
+//-------------------------------------
+#define REZULTAT_DIAGNOSTYKI		'D'
+#define REZULTAT_START_Bp			2
+#define REZULTAT_END_Bp				5
+//-------------------------------------
 #define ZNAK_TERMINACJI				'$'
 //_____________________________________________________
 #define LICZBA_PROBEK_500	0
@@ -76,7 +87,7 @@
 //	makra do obliczen
 #define ADC_MAX_F 4096.0
 //#define ADC_VREF 1.0
-#define ADC_OFFSET 250.0
+#define ADC_OFFSET 200.0 
 //----------------------------------------------------
 //				PROTOTYPY FUNKCJI
 //----------------------------------------------------
@@ -97,6 +108,7 @@ void delayTCC1(uint16_t ms);
 //				FUNKCJE KONWERSJI
 void NadajWynik(uint16_t * tablicaProbek, uint16_t liczbaProbek);
 void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow);
+void NadajInfo(uint16_t  okres_timera, uint16_t  liczba_probek,uint8_t  przebieg);
 uint8_t znakNaCyfre( unsigned char znak);
 uint16_t znakiNaLiczbe( unsigned char tablica_znakow[] ,uint8_t start_ind);
 //----------------------------------------------------
@@ -104,8 +116,14 @@ uint16_t znakiNaLiczbe( unsigned char tablica_znakow[] ,uint8_t start_ind);
 uint8_t ReadCalibrationByte(uint8_t index); // kalibracja ADC
 void WlaczPeryferia(void);
 float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] );
-float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f);
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f, uint16_t okres_timera);
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[]);
 uint16_t KalibracjaOffsetuADC(void);
 float KalibracjaWzmocnieniaADC(void);
+
+//----------------------------------------------------
+//				FUNKCJE DIAGNOSTYCZNE
+uint8_t Diagnostyka(float * widmo, uint8_t typ_slownika);
+void wypiszWynikDiagnozyLCD(uint8_t etykieta_uszkodzenia);
+
 #endif /* MAIN_H_ */
