@@ -38,8 +38,8 @@ uint16_t probki_sygnalu[LICZBA_PROBEK_W_TABLICY_MAX];
 uint16_t probki_pomiaru[LICZBA_PROBEK_W_TABLICY_MAX];
 volatile uint8_t flagi = 0;
 volatile uint16_t licznik_ms = 0;
-volatile uint16_t offsetADC;
-volatile float gainADC;
+//volatile uint16_t offsetADC;
+//volatile float gainADC;
 //-----------------------------------------------------------------------------------------------
 //				DEKLARACJE FUNKCJI
 
@@ -96,11 +96,21 @@ int main (void)
 	 //----------------------------------------------------
 	 //				FUNKCJE WYKONYWANE JEDNORAZOWO
 	 WlaczPeryferia();
-	 offsetADC = KalibracjaOffsetuADC();
-	 gainADC = KalibracjaWzmocnieniaADC();
+	/* offsetADC = KalibracjaOffsetuADC();
+	 gainADC = KalibracjaWzmocnieniaADC();*/
 	 Init();
+	 lcd_init();
+	 lcd_cls();
+	 lcd_goto(0,0);
+	 lcd_puttext_P(PSTR("USMIECHNIJ SIE!"));
+	 lcd_goto(7,1);
+	 lcd_puttext_P(PSTR(";)"));
 	 //----------------------------------------------------
 	 //				PETLA GLOWNA 
+	 
+	float widmo[LICZBA_PROBEK_WIDMA] = {1,2,3,4,5,6,7,8,9,10};
+	wypiszWynikDiagnozyLCD( Diagnostyka(widmo, SLOWNIK_SINC) ) ;
+	 
 	 while(1)
 	 {
 		  char ch;
@@ -302,6 +312,27 @@ void NadajWidmo(char * tablicaFloatToChar, uint8_t liczbaElementow)
 	udi_cdc_putc(ZNAK_TERMINACJI);
 }
 
+void NadajInfo(uint16_t  okres_timera, uint16_t  liczba_probek,uint8_t  przebieg)
+{
+	uint8_t liczba_probek_znak = 0;
+	switch(liczba_probek)
+	{
+		case 500 :
+			liczba_probek_znak = LICZBA_PROBEK_500;
+			break;
+		case 250 :
+			liczba_probek_znak = LICZBA_PROBEK_250;
+			break;
+		case 100:
+			liczba_probek_znak = LICZBA_PROBEK_100;
+			break;
+		default: liczba_probek_znak = LICZBA_PROBEK_500;
+	}
+	
+	printf("I %d %d %d %c", przebieg, okres_timera, liczba_probek_znak, ZNAK_TERMINACJI );
+	
+}
+
 uint8_t znakNaCyfre(unsigned char znak)
 {
 	switch (znak)
@@ -369,38 +400,42 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 	for(n = 0;n<N;n++) // n -> DFT probka czasu
 	{
 		//float x = ( (float)(sygnal[n]) - offsetADC );
-		x = sygnal[n] - offsetADC;
+		x = sygnal[n] - ADC_OFFSET;
 		//Re_DFT += (sygnal[n] * cos( (2 * M_PI * k * n)/N))/N;
 		//Im_DFT += (sygnal[n] * sin( (2 * M_PI * k * n)/N))/N;
 		Re_DFT += (x * cos( (2 * M_PI * k * n)/N))/N;
 		Im_DFT += (x * sin( (2 * M_PI * k * n)/N))/N;
 	}
 
-	Modul_DFT = gainADC * sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // przejscie z wartosci ADC na napiecie
+	Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT)/ ADC_MAX_F; // przejscie z wartosci ADC na napiecie
 	//Modul_DFT = sqrt(Re_DFT*Re_DFT + Im_DFT*Im_DFT);			// bez normalizacji
 	return Modul_DFT;
 
 }
 
-float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f)
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f, uint16_t okres_timera)
 {
-	float w = 2 * M_PI * (float)f; // pulsacja
-	float T =  0.002; //((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
+	float w = 2 * M_PI * (float)(f); // pulsacja
+	float T = ((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
 	float ReU    = 0.0;
 	float ImU    = 0.0;
 	float ModulU = 0.0;
 	float tn = 0.0;
 	float tn_p1 = T;
 	float a = 0; // wspolczynnik kierunkowy
+	float u_tn_plus_1;
+	float u_tn;
 	uint16_t i ;
 
 	for (i = 0; i < (liczba_elementow-1);i++)
 	{
+		u_tn = (float)(sygnal[i]) - (float)(sygnal[0]);
+		u_tn_plus_1 = (float)(sygnal[i+1]) - (float)(sygnal[0]);
 		tn = (float)((i)) * T;
 		tn_p1 =(float)((i + 1))  * T;
-		a = ( (float)(sygnal[i+1]) - (float)(sygnal[i]) ) / (T);
-		ReU += (( ( (float)(sygnal[i+1]) * sin(w*tn_p1) ) - ( (float)(sygnal[i]) * sin(w*tn) ) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
-		ImU -= (( ( (float)(sygnal[i+1]) * cos(w*tn_p1) ) - ( (float)(sygnal[i]) * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
+		a = ( u_tn_plus_1 - u_tn ) / (T);
+		ReU += (( ( u_tn_plus_1 * sin(w*tn_p1) ) - ( u_tn * sin(w*tn)) )/w) + a * ( cos(w*tn_p1) - cos(w*tn) )/(w*w);
+		ImU -= (( ( u_tn_plus_1 * cos(w*tn_p1) ) - ( u_tn * cos(w*tn) ) )/w) - a * ( sin(w*tn_p1) - sin(w*tn) )/(w*w);
 	}
 
 	ModulU = sqrt(ReU*ReU + ImU*ImU) / ADC_MAX_F; // z normalizacja -> do 1 V
@@ -414,7 +449,7 @@ bool OSC_wait_for_rdy(uint8_t clk)
 	uint8_t czas=255;
 	while ((!(OSC.STATUS & clk)) && (--czas)) // Czekaj na ustabilizowanie siê generatora
 	//_delay_ms(1);
-	_delay_ms(16); 
+	_delay_ms(16); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz ...
 	return czas;   //false jeœli generator nie wystartowa³, true jeœli jest ok
 }
 
@@ -436,6 +471,10 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 		char c[sizeof(float)]; // float ma dlugosc 32 bitow 32/8 = 4
 	} unia_widmo;
 	
+	lcd_cls();
+	lcd_goto(0,0);
+	lcd_puttext_P(PSTR("PRACA ZDALNA"));
+	lcd_goto(0,1);
 	
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
@@ -455,9 +494,11 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 											break;
 			}
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
+			lcd_puttext_P(PSTR("GENERACJA"));
 			break;
 		case 'P' : // Pomiar
-			typ_pomiaru = znakNaCyfre( ramka_danych[POM_TYP_Bp] ); // odczyt flag pomiaru
+			lcd_puttext_P(PSTR("POMIAR"));
+			typ_pomiaru = ramka_danych[POM_TYP_Bp]; // odczyt flag pomiaru
 			if (typ_pomiaru & POMIAR_IMPULSOWY)
 			{
 				PomiarImpulsowy(*liczba_probek, znakiNaLiczbe(ramka_danych, POM_DELAY_Bp) );
@@ -471,17 +512,28 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
 			unia_widmo.widmo = oblicz_DFT(czestotliwosc,*liczba_probek,probki_pomiaru);
 			NadajWidmo(unia_widmo.c,sizeof(float));
+			lcd_puttext_P(PSTR("WIDMO"));
 			break;
 		case TRANSFORMATA_FOURIERA:// oblicz TF
 			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
-			unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc);
+			unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc, *okres_timera);
 			NadajWidmo(unia_widmo.c,sizeof(float));
+			lcd_puttext_P(PSTR("FOURIER"));
+			break;
+		case INFORMACJE_O_PRZEBIEGU : // PC prosi o informacje o aktualnie generowanym przebiegu
+			NadajInfo(*okres_timera, *liczba_probek, * przebieg );
+			break;
+		case REZULTAT_DIAGNOSTYKI :
+			for(typ_pomiaru = REZULTAT_START_Bp; typ_pomiaru < REZULTAT_END_Bp ; typ_pomiaru++) // wykorzystujemy zmienna typ pomiaru, zeby nie definiowac nowej!
+			{
+				lcd_putchar(ramka_danych[typ_pomiaru]);
+			}
 			break;
 		default :	break;
 	}
 }
 
-uint16_t KalibracjaOffsetuADC(void)
+/*uint16_t KalibracjaOffsetuADC(void)
 {
 	int16_t res_signed;
 	uint16_t res_unsigned;
@@ -539,4 +591,30 @@ float KalibracjaWzmocnieniaADC(void)
 	printf("DAC = 3072 -> ADC = %d\n\r",pomiar3072);
 	a = (2048.0) / ( (float)(pomiar3072 - pomiar1024) ); // obliczenie nachylenia prostej
 	return a;
+}*/
+
+uint8_t Diagnostyka(float * widmo, uint8_t typ_slownika)
+{
+	/*
+		WYSOKO-POZIOMOWA FUNKCJA DIAGNOZUJACA UKLAD
+		zwraca etykiete uszkodzenia
+	*/
+	if ( stan_nominalny(widmo, typ_slownika) )
+	{
+		return NOMINALNY;
+	}
+	else
+	{
+		return klasyfikacja(widmo, typ_slownika);
+	}
+}
+
+void wypiszWynikDiagnozyLCD(uint8_t etykieta_uszkodzenia)
+{
+	// wypisuje na LCD uszkodzenie
+	lcd_cls();
+	lcd_goto(0,0);
+	lcd_puttext_P(PSTR("MCU TEST"));
+	lcd_goto(0,1);
+	lcd_puttext_P(NapisyLCD[etykieta_uszkodzenia]);
 }
