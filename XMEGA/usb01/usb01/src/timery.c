@@ -10,7 +10,7 @@
 void TCC1_Init(uint16_t per)
 {
 	// konfiguracja przerwania od przepelnienia
-	TCC1.INTCTRLA = TC_OVFINTLVL_MED_gc;				// przepe³nienie TCC1 ma generowaæ przerwanie MED -> priorytety przerwan
+	TCC1.INTCTRLA = TC_OVFINTLVL_LO_gc;				// przepe³nienie TCC1 ma generowaæ przerwanie LOW -> priorytety przerwan
 	TCC1.CTRLB	  = TC_WGMODE_NORMAL_gc;				// tryb normalny
 	TCC1.PER	  =	per;								// LICZ MODULO per - przepelnienie co per+1
 	TCC1_CTRLA    = TC_CLKSEL_DIV256_gc;				// w³aczenie timera
