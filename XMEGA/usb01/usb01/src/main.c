@@ -40,24 +40,9 @@ volatile uint8_t flagi = 0;
 volatile uint16_t licznik_ms = 0;
 //volatile uint16_t offsetADC;
 //volatile float gainADC;
-//-----------------------------------------------------------------------------------------------
-//				DEKLARACJE FUNKCJI
 
 //-----------------------------------------------------------------------------------------------
 //				FUNKCJE OBSLUGI PRZERWAN
-
-/*ISR(DMA_CH0_vect)
-{
-	
-	if(DACB_CH0DATA == probki_sygnalu[0] ) // kiedy jestesmy na poczatku okresu
-	{
-		DMA_CH0_CTRLB &= ~DMA_CH_TRNINTLVL_MED_gc; // wylaczenie przerwania
-		DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
-		DMA_CH1_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie po koncu transmisji bloku
-		// wyczyszczenie flagi przerwania
-		DMA_CH0_CTRLB |= DMA_CH_TRNIF_bm;
-	}
-}*/
 
 ISR(DMA_CH1_vect) // przerwanie po transmisji bloku
 {
@@ -99,17 +84,9 @@ int main (void)
 	/* offsetADC = KalibracjaOffsetuADC();
 	 gainADC = KalibracjaWzmocnieniaADC();*/
 	 Init();
-	 lcd_init();
-	 lcd_cls();
-	 lcd_goto(0,0);
-	 lcd_puttext_P(PSTR("USMIECHNIJ SIE!"));
-	 lcd_goto(7,1);
-	 lcd_puttext_P(PSTR(";)"));
 	 //----------------------------------------------------
 	 //				PETLA GLOWNA 
 	 
-	float widmo[LICZBA_PROBEK_WIDMA] = {1,2,3,4,5,6,7,8,9,10};
-	wypiszWynikDiagnozyLCD( Diagnostyka(widmo, SLOWNIK_SINC) ) ;
 	 
 	 while(1)
 	 {
@@ -130,11 +107,30 @@ int main (void)
 			  }
 		  }
 		  
-		  if (flagi & KONIEC_ZBIERANIA_PROBEK)
+		  if ( ( flagi & KONIEC_ZBIERANIA_PROBEK ) )
 		  {
 			  flagi &= ~(KONIEC_ZBIERANIA_PROBEK);
-			  NadajWynik(probki_pomiaru,liczba_probek);
+			  if ( (flagi & WYSLIJ_POMIAR ))
+			  {
+				  flagi &= ~(WYSLIJ_POMIAR);
+				  NadajWynik(probki_pomiaru,liczba_probek);
+			  }
 		  }
+		  
+		  if ( !(BUTTON_PORT.IN & (1<<BUTTON_1_PIN)) )// kiedy przycisk 1 jest wcisniety
+		  {
+			  delayTCC1(DEBOUNCING_DELAY_ms);
+			  //Generacja(okres_timera, MULTI_SIN_500_NR, liczba_probek);
+			  Testuj(&okres_timera , &przebieg,  &liczba_probek,  MULTI_SIN_500_NR,  SLOWNIK_MULTISIN);
+		  }
+		  
+		  if ( !(BUTTON_PORT.IN & (1<<BUTTON_2_PIN)) )// kiedy przycisk 2 jest wcisniety
+		  {
+			  delayTCC1( DEBOUNCING_DELAY_ms );
+			  //Generacja(okres_timera, SINC_500_NR, liczba_probek);
+			  Testuj(&okres_timera , &przebieg,  &liczba_probek,  SINC_500_NR,  SLOWNIK_SINC);
+		  }
+		  
 		  
 	 }
 }
@@ -164,6 +160,16 @@ void Init(void)
 	ADC_Init(&ADCA.CH0,ADC_CH_MUXPOS_PIN1_gc); // 32A4
 	TCC0_Init(31); // Timer taktujacy DAC i ADC
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
+	
+	ButtonInit( &(BUTTON_PORT) );
+	LEDInit( &(LED_PORT) );
+	
+	lcd_init();
+	lcd_cls();
+	lcd_goto(0,0);
+	lcd_puttext_P(PSTR("USMIECHNIJ SIE!"));
+	lcd_goto(7,1);
+	lcd_puttext_P(PSTR(";)"));
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POMIAROWE
@@ -173,7 +179,7 @@ void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek)
 	/*		WYLACZENIE POPRZEDNIEJ GENERACJI		*/
 	// wylaczenie timera
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;
-	_delay_ms(10);
+	delayTCC1(10);
 	// WYLACZENIE transmisji DMA DAC'a
 	DMA_CH0_CTRLA &= ~(DMA_CH_ENABLE_bm);
 	
@@ -189,7 +195,7 @@ void Generacja(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek)
 	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
 	// wlaczenie transmisji DMA DAC'a
 	DMA_CH0_CTRLA |= DMA_CH_ENABLE_bm; //DAC
-	_delay_ms(100);
+	delayTCC1(100);
 }
 
 void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie)
@@ -211,8 +217,6 @@ void PomiarOkresowyADC(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	
 	// odczekaj do stanu ustalonego
 	delayTCC1(opoznienie);
-	//DMA_CH0_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie po koncu transmisji bloku -> czekamy aby zaczac pomiar od POCZATKU OKRESU!
-	//		-- NIE SYNCHRONIZUJEMY FAZ SYGNALOW IN I OUT!!! --
 	DMA_CH1_CTRLA |= DMA_CH_ENABLE_bm; // wlaczenie transferu DMA probek zmierzonych przez ADC
 	DMA_CH1_CTRLB |= DMA_CH_TRNINTLVL_MED_gc; // przerwanie DMA po koncu transmisji bloku
 }
@@ -413,7 +417,7 @@ float oblicz_DFT(uint16_t k , uint16_t N, const uint16_t sygnal[] )
 
 }
 
-float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f, uint16_t okres_timera)
+float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow, uint16_t f, uint16_t okres_timera)
 {
 	float w = 2 * M_PI * (float)(f); // pulsacja
 	float T = ((float)(okres_timera+1)) / ((float)F_CPU) ; // okres probkowania
@@ -446,10 +450,13 @@ float obliczTF(const uint16_t sygnal[],uint16_t liczba_elementow,uint8_t f, uint
 //				FUNKCJE TAKTOWANIA -> Tomasz Francuz
 bool OSC_wait_for_rdy(uint8_t clk)
 {
-	uint8_t czas=255;
+	uint8_t czas= 20; //255; - tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz, wiec mamy 20 * 16ms = 320 ms delaya
 	while ((!(OSC.STATUS & clk)) && (--czas)) // Czekaj na ustabilizowanie siê generatora
-	//_delay_ms(1);
-	_delay_ms(16); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz ...
+	{
+		//_delay_ms(1);
+		//_delay_ms(16); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz ...
+		delayTCC1(1); // tutaj jeszcze czestotliwosc taktowania rdzenia to 2MHz a nie 32 MHz, wiec delayTCC1(1) -> 16 ms
+	}
 	return czas;   //false jeœli generator nie wystartowa³, true jeœli jest ok
 }
 
@@ -464,7 +471,7 @@ void SelectPLL(OSC_PLLSRC_t src, uint8_t mult)
 void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t * przebieg, unsigned char ramka_danych[])
 {
 	uint8_t typ_pomiaru;
-	uint8_t czestotliwosc; // w zaleznosci od typu transformaty albo oznacza prazek widma k X[k], albo konkretna czestotliwosc X(f)
+	uint16_t czestotliwosc; // w zaleznosci od typu transformaty albo oznacza prazek widma k X[k], albo konkretna czestotliwosc X(f)
 	union
 	{
 		float widmo;
@@ -507,6 +514,7 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			{
 				PomiarOkresowyADC(*liczba_probek,znakiNaLiczbe(ramka_danych, POM_DELAY_Bp));	
 			}
+			flagi |= WYSLIJ_POMIAR;
 			break;
 		case DFT: // OBLICZ DFT
 			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
@@ -601,20 +609,145 @@ uint8_t Diagnostyka(float * widmo, uint8_t typ_slownika)
 	*/
 	if ( stan_nominalny(widmo, typ_slownika) )
 	{
+		LED_PORT.OUTCLR = (1<<LED_NOM_PIN); // zapal LED stanu nominalnego
+		LED_PORT.OUTSET = (1<<LED_FAULT_PIN); // wygas LED uszkodzenia
 		return NOMINALNY;
 	}
 	else
 	{
+		LED_PORT.OUTCLR = (1<<LED_FAULT_PIN);	// zapal LED uszkodzenia
+		LED_PORT.OUTSET = (1<<LED_NOM_PIN);		// wygas LED stanu nominalnego
 		return klasyfikacja(widmo, typ_slownika);
 	}
 }
 
 void wypiszWynikDiagnozyLCD(uint8_t etykieta_uszkodzenia)
 {
+	char bufor[LICZBA_ZNAKOW_SYGNATURY];
 	// wypisuje na LCD uszkodzenie
 	lcd_cls();
 	lcd_goto(0,0);
 	lcd_puttext_P(PSTR("MCU TEST"));
 	lcd_goto(0,1);
-	lcd_puttext_P(NapisyLCD[etykieta_uszkodzenia]);
+	
+	strcpy_P(bufor, (PGM_P)pgm_read_word(& (NapisyLCD[etykieta_uszkodzenia]) ));
+	lcd_puttext(bufor);
+}
+
+void ButtonInit(PORT_t *port)
+{
+	port -> DIRCLR = (1<<BUTTON_1_PIN) | (1<< BUTTON_2_PIN); // piny sa WEJsciami
+	PORTCFG_MPCMASK = (1<<BUTTON_1_PIN) | (1<< BUTTON_2_PIN); // zgrupowania dwoch pinow razem do nastepnej operacji
+	port -> PIN0CTRL = PORT_OPC_PULLUP_gc ; // rezystory podciagajace 
+}
+
+/*uint8_t debouncing(volatile uint8_t *rejestr_portu, uint8_t pin, uint8_t opoznienie_ms )
+{
+	delayTCC1(opoznienie_ms);
+	if( !( *rejestr_portu & (1<<pin) ) ) // sprawdzenie czy przycisk nadal jest wcisniety - stan niski
+	{
+		return 1;
+	}
+	else
+	{
+		return 0; // zakladamy ze to jakies zaklocenie
+	}
+}*/
+
+void LEDInit(PORT_t *port)
+{
+	port -> DIRSET = (1<<LED_NOM_PIN) | (1<<LED_FAULT_PIN) ; // LEDy sa wyjsciami
+	port -> OUTSET = (1<<LED_NOM_PIN) | (1<<LED_FAULT_PIN); // led aktywny stanem niskim -> stan wysoki wygasza
+}
+
+uint8_t SprawdzParametryPrzebiegu(uint16_t okres_timerow,uint8_t przebieg, uint16_t liczba_probek, uint8_t przebieg_docelowy)
+{
+	if( (przebieg_docelowy != przebieg) || ( (500 != liczba_probek) ) ) 
+	{
+		return 0;
+	}
+	else
+	{
+		if ( SINC_500_NR == przebieg_docelowy )
+		{
+			if (SINC_DIAG_PER != okres_timerow) return 0;
+		}
+		else
+		{
+			if ( MULTISIN_DIAG_PER != okres_timerow ) return 0;
+		}
+		return 1;
+	}
+}
+
+void wyznaczWimo(float wynik[], uint16_t liczba_elementow, uint16_t okres_timera ,uint8_t typ_slownika)
+{
+	uint16_t czestotliwosci[LICZBA_PROBEK_WIDMA]; // tablica czestotliwosci
+	uint8_t i;
+	//			WCZYTANIE TABELI CZESTOTLIWOSCI
+	if ( SLOWNIK_SINC == typ_slownika)
+	{
+		memcpy_P(czestotliwosci, czestotliwosci_sinc, LICZBA_PROBEK_WIDMA * sizeof(uint16_t));
+		for (i=0; i < LICZBA_PROBEK_WIDMA; i++) // wyznaczenie widma dla zadanych czestotliwosci
+		{
+			wynik[i] = obliczTF( probki_pomiaru, liczba_elementow, czestotliwosci[i], okres_timera );
+		}
+	}
+	else
+	{
+		memcpy_P(czestotliwosci, czestotliwosci_multisin_k, LICZBA_PROBEK_WIDMA * sizeof(uint16_t));
+		for (i = 0; i < LICZBA_PROBEK_WIDMA; i++) // wyznaczenie widma dla zadanych czestotliwosci
+		{
+			wynik[i] = oblicz_DFT( czestotliwosci[i], liczba_elementow , probki_pomiaru  );
+		}
+	}
+	
+}
+
+void Testuj(uint16_t *okres_timerow,uint8_t *przebieg, uint16_t * liczba_probek, uint8_t przebieg_docelowy, uint8_t typ_slownika)
+{
+	uint16_t delay = DELAY_BEZ_ZMIANY_PRZEBIEGU_ms;
+	float widmo[LICZBA_PROBEK_WIDMA];
+	
+	if (! ( SprawdzParametryPrzebiegu(*okres_timerow,* przebieg, *liczba_probek, przebieg_docelowy) ) )// kiedy generowany jest inny przebieg niz do diagnostyki
+	{
+		if (SINC_500_NR == przebieg_docelowy)
+		{
+			*okres_timerow = SINC_DIAG_PER;
+		}
+		else
+		{
+			*okres_timerow = MULTISIN_DIAG_PER;
+		}
+		*przebieg = przebieg_docelowy;
+		//*liczba_probek = LICZBA_PROBEK_500; <- ZLE!!! TO MAKRO OKRESLA TYLKO FLAGE LICZBY!!!
+		*liczba_probek = 500;
+		
+		Generacja(*okres_timerow,*przebieg,*liczba_probek);
+		delay = DELAY_ZE_ZMIANA_PRZEBIEGU_ms;
+	}
+	
+	//		POMIAR:
+	if (SINC_500_NR == przebieg_docelowy)
+	{
+		PomiarImpulsowy(*liczba_probek, delay);
+	}
+	else
+	{
+		PomiarOkresowyADC(*liczba_probek, delay);
+	}
+	delayTCC1(delay);
+	while(1)
+	{
+		if ( ( flagi & KONIEC_ZBIERANIA_PROBEK ) )
+		{
+			flagi &= ~(KONIEC_ZBIERANIA_PROBEK);
+			break;
+		}
+	}
+	
+	//		WIDMO:
+	wyznaczWimo( widmo, *liczba_probek, *okres_timerow, typ_slownika );
+	//		DIAGNOSTYKA
+	wypiszWynikDiagnozyLCD( Diagnostyka(widmo, typ_slownika )) ;
 }
