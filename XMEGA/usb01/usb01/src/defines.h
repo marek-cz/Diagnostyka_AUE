@@ -12,11 +12,11 @@
  */
 
 /* HD44780 LCD port connections */
-#define HD44780_RS C, 6
-#define HD44780_RW E, 5
-#define HD44780_E  C, 7
+#define HD44780_RS E, 1
+#define HD44780_RW E, 2
+#define HD44780_E  E, 0
 /* The data bits have to be in ascending order. */
-#define HD44780_D4 C, 0
+#define HD44780_D4 D, 2
 
 /* Whether to read the busy flag, or fall back to
    worst-time delays. */
