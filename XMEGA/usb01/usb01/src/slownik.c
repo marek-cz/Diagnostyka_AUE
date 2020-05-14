@@ -4,7 +4,7 @@
  * Created: 2020-05-12 12:42:16
  *  Author: Marek
  */ 
-
+//	BIBLIOTEKI
 #include "slownik.h"
 #include <math.h>
 //###################################################
@@ -22,15 +22,16 @@ const char PROGMEM R2_M[] = "R2-";
 
 const char PROGMEM NOM_STR[] = "NOM";
 
-const char * const NapisyLCD[LICZBA_USZKODZEN+1] PROGMEM = {C1_P,C1_M,C2_P,C2_M,C3_P,C3_P,R1_P,R1_M,R2_P,R2_M,NOM_STR };
+const char * const NapisyLCD[LICZBA_USZKODZEN+1] PROGMEM = {C1_P, C1_M, C2_P, C2_M, C3_P, C3_P, R1_P, R1_M, R2_P, R2_M, NOM_STR };
 //###################################################
 
 
 //############################################################
 //				PARAMETRY MULTISIN:
-const float PROGMEM srodek_multisin[WYMIAR_PO_PCA] = {-1.111261067020383e-01, -1.589418065713307e-02};
-const float PROGMEM graniczna_odleglosc_Mah_multisin = 6.008596707245276e-03;
-const float PROGMEM sigma_multisin[WYMIAR_PO_PCA][WYMIAR_PO_PCA] = {{1.014770229084543, 0.262326290458436},{0.262326290458436, 5.659039631125032}};
+const uint16_t PROGMEM czestotliwosci_multisin_k[LICZBA_PROBEK_WIDMA]={1,2,3,4,5,6,7,8,9,10}; // probki widma DTF
+const float  srodek_multisin[WYMIAR_PO_PCA] = {-1.111261067020383e-01, -1.589418065713307e-02};
+const float  graniczna_odleglosc_Mah_multisin = 6.008596707245276e-03;
+const float  sigma_multisin[WYMIAR_PO_PCA][WYMIAR_PO_PCA] = {{1.014770229084543, 0.262326290458436},{0.262326290458436, 5.659039631125032}};
 const float PROGMEM slownik_uszkodzen_multisin[LICZBA_USZKODZEN][LICZBA_PUNKTOW][WYMIAR_PO_PCA]=
 {
 	{	// C1+
@@ -129,9 +130,10 @@ const float PROGMEM fi_multisin[WYMIAR_PO_PCA][LICZBA_PROBEK_WIDMA] =
 
 //############################################################
 //				PARAMETRY SINC'A
-const float PROGMEM srodek_sinc[WYMIAR_PO_PCA] = {-1.248640363972293e-03,  2.432109667634396e-04};
-const float PROGMEM graniczna_odleglosc_Mah_sinc = 6.211322863445275e-05;
-const float PROGMEM sigma_sinc[WYMIAR_PO_PCA][WYMIAR_PO_PCA] = {{1.128121794201104, 0.786645025277213},{0.786645025277213, 5.829860521794473}};
+const uint16_t PROGMEM czestotliwosci_sinc[LICZBA_PROBEK_WIDMA]={50,60,70,80,90,100,110,120,130,140};
+const float  srodek_sinc[WYMIAR_PO_PCA] = {-1.248640363972293e-03,  2.432109667634396e-04};
+const float  graniczna_odleglosc_Mah_sinc = 6.211322863445275e-05;
+const float  sigma_sinc[WYMIAR_PO_PCA][WYMIAR_PO_PCA] = {{1.128121794201104, 0.786645025277213},{0.786645025277213, 5.829860521794473}};
 const float PROGMEM slownik_uszkodzen_sinc[LICZBA_USZKODZEN][LICZBA_PUNKTOW][WYMIAR_PO_PCA]=
 {
 	{	// C1+
@@ -326,23 +328,29 @@ uint8_t klasyfikacja(float * widmo, uint8_t typ_slownika)
 	float d;
 	
 	float x[WYMIAR_PO_PCA];
+	
+	if ( SLOWNIK_SINC == typ_slownika )
+	{
+		memcpy_P( fi, fi_sinc, WYMIAR_PO_PCA * LICZBA_PROBEK_WIDMA * sizeof(float) );
+	}
+	else
+	{
+		memcpy_P( fi, fi_multisin, WYMIAR_PO_PCA * LICZBA_PROBEK_WIDMA * sizeof(float) );
+	}
+	
+	PCA(fi, widmo, x);
 
 	for(i=0; i < LICZBA_USZKODZEN; i++) // sprawdzamy kazdy element ukladu
 	{
-		//memcpy_P( bufor, slownik_uszkodzen_sinc[i], LICZBA_PUNKTOW * WYMIAR_PO_PCA * sizeof(float) ); // na MCU memcpy_p!!!
 		if ( SLOWNIK_SINC == typ_slownika )
 		{
 			memcpy_P( bufor, slownik_uszkodzen_sinc[i], LICZBA_PUNKTOW * WYMIAR_PO_PCA * sizeof(float) );
-			memcpy_P( fi, fi_sinc, WYMIAR_PO_PCA * LICZBA_PROBEK_WIDMA * sizeof(float) );
 		}
 		else
 		{
 			// domyslnie slownik multisin
 			memcpy_P( bufor, slownik_uszkodzen_multisin[i], LICZBA_PUNKTOW * WYMIAR_PO_PCA * sizeof(float) );
-			memcpy_P( fi, fi_multisin, WYMIAR_PO_PCA * LICZBA_PROBEK_WIDMA * sizeof(float) );
 		}
-		
-		PCA(fi, widmo, x);
 		
 		for(j = 0; j < LICZBA_PUNKTOW - 1; j++)// sprawdzamy kazdy punkt w slowniku dla danego elementu
 		{
