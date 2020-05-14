@@ -111,7 +111,7 @@ menu1 = tk.Menu(okno)
 program_menu = tk.Menu(menu1, tearoff = 0) # tearoff = 0 -> menu sie nie "odrywa"
 program_menu.add_command(label = "Wyrysuj pomiar", command = WyrysujDane) # Rysowanie
 program_menu.add_command(label = "Wyrysuj krzywe identyfikacyjne", command = WyrysujSlownik) # Rysowanie
-program_menu.add_command(label = "Wyrysuj pomiary", command = WyrysujPomiary ) # Rysowanie
+program_menu.add_command(label = "Wyrysuj pomiary PCA", command = WyrysujPomiary ) # Rysowanie
 program_menu.add_separator()
 program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
 
