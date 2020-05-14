@@ -74,7 +74,8 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         else : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
     ########################################################################################################################       
 
-    NadajRezultatKlasyfikacji(wynik)
+        NadajRezultatKlasyfikacji(wynik) # jezeli diagnozujemy, to nadaje wynik klasyfikacji
+        
     ZamknijCOM(portCOM)
 
     ########################################################################################################################
