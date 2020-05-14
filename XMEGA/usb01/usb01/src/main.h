@@ -56,7 +56,7 @@
 #define  DEBOUNCING_DELAY_ms	50
 //			MAKRA LEDow:
 #define LED_PORT		PORTC
-#define LED_NOM_PIN		4
+#define LED_NOM_PIN		7
 #define LED_FAULT_PIN	5
 
 //			MAKRA OPISUJACE NUMERY PRZEBIEGOW
