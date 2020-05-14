@@ -44,16 +44,8 @@
 //###########################
 
 extern const char * const NapisyLCD[LICZBA_USZKODZEN + 1];
-//--------------------------------------------------------------------------------------------------
-/*extern const float srodek_multisin[WYMIAR_PO_PCA];
-extern const float graniczna_odleglosc_Mah_multisin;
-extern const float sigma_multisin[WYMIAR_PO_PCA][WYMIAR_PO_PCA];
-extern const float slownik_uszkodzen_multisin[LICZBA_USZKODZEN][LICZBA_PUNKTOW][WYMIAR_PO_PCA];
-//--------------------------------------------------------------------------------------------------
-extern const float srodek_sinc[WYMIAR_PO_PCA];
-extern const float graniczna_odleglosc_Mah_sinc;
-extern const float sigma_sinc[WYMIAR_PO_PCA][WYMIAR_PO_PCA];
-extern const float  slownik_uszkodzen_sinc[LICZBA_USZKODZEN][LICZBA_PUNKTOW][WYMIAR_PO_PCA];*/
+extern const uint16_t czestotliwosci_sinc[LICZBA_PROBEK_WIDMA];
+extern const uint16_t czestotliwosci_multisin_k[LICZBA_PROBEK_WIDMA];
 //--------------------------------------------------------------------------------------------------
 //############################
 //			FUNKCJE
