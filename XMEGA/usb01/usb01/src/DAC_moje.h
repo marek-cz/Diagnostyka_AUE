@@ -17,6 +17,7 @@ extern const uint16_t sinc_wave_500[LICZBA_PROBEK_W_TABLICY_MAX];		// probki syg
 extern const uint16_t sinus_500[LICZBA_PROBEK_W_TABLICY_MAX];			// probki sygnalu sinusa
 extern const uint16_t sinus_250[250];			// probki sygnalu sinusa
 extern const uint16_t sinus_100[100];			// probki sygnalu sinusa
+//extern const uint16_t pila_1000[LICZBA_PROBEK_W_TABLICY_MAX];			// probki sygnalu pily (rampa)
 
 
 
