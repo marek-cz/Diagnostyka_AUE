@@ -373,7 +373,20 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
     return słownikUszkodzen
     
 #------------------------------------------------------------------------------
+def ZmianaNazwSygnatur(slownik):
+    nowy_slownik = copy.deepcopy(slownik)
+    licznik = 0;
+    for sygnatura in slownik:
+        if sygnatura == 'Nominalne' : continue
+        if len(sygnatura) > 3 :
+            nowa_sygnatura = 'Kl' + str(licznik)
+            licznik += 1
+            nowy_slownik[nowa_sygnatura] = slownik[sygnatura]
+            del(nowy_slownik[sygnatura])
+            print('Sygantura '+ sygnatura + " zostala zastapiona sygnatura: " + nowa_sygnatura)
 
+    return nowy_slownik
+            
 #------------------------------------------------------------------------------
 def LaczenieTozsamychSygnatur(slownik, epsilon):
     nowy_slownik = copy.deepcopy(slownik)
