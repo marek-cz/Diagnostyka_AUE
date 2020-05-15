@@ -375,31 +375,26 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-def LaczenieWyrazenWSlowniku(slownik):
-    nowy_slownik = {}
-    polaczone_sygnatury = []
-    for element1 in slownik:
-        for element2 in slownik:
-            if (element1 == element2) : continue # ten sam wyraz
-            if (element1 == 'Nominalne') or (element2 == 'Nominalne') : continue
-            # na wypadek nominalnego punktu w danych
-            #####################################################
-            a = slownik[element1] - slownik['Nominalne']
-            if (a.all() == 0): continue
-            a = slownik[element2] - slownik['Nominalne']
-            if (a.all() == 0): continue
-            ######################################################
-            a = slownik[element1] - slownik[element2]
-            if (a.all() == 0): # kiedy elementy sa takie same
-                if not((element1 in polaczone_sygnatury) or (element2 in polaczone_sygnatury) ):
-                    nowy_slownik.setdefault(element1+element2,slownik[element1])
-                    polaczone_sygnatury.append(element1)
-                    polaczone_sygnatury.append(element2)
-        lista_kluczy = list(nowy_slownik.keys())
-        dodaj = True
-        for klucz in lista_kluczy:
-            if(klucz.find(element1) != -1): dodaj = False
-        if (dodaj) : nowy_slownik.setdefault(element1,slownik[element1])
+def LaczenieTozsamychSygnatur(slownik, epsilon):
+    nowy_slownik = copy.deepcopy(slownik)
+    while (True):
+        polaczenie = False
+        for element1 in nowy_slownik:
+            for element2 in nowy_slownik:
+                if element1==element2 : continue
+                if (element1 == 'Nominalne') or (element2 == 'Nominalne') : continue
+                r = abs(nowy_slownik[element1] - nowy_slownik[element2])
+                suma = sum(sum(r))
+                if suma < epsilon :
+                    nowy_slownik[element1+element2] = nowy_slownik[element1]
+                    del nowy_slownik[element1]
+                    del nowy_slownik[element2]
+                    polaczenie = True
+                    print("Polaczono sygnatury: "+element1+" i " + element2)
+                    break                
+            if polaczenie : break            
+        if not(polaczenie) : break
+    
     return nowy_slownik
 
 #------------------------------------------------------------------------------
@@ -412,10 +407,10 @@ def PolaczDwieSygnatury(slownik):
         if (sygnatura == 'Nominalne') : continue
         print(i+1, ". ",sygnatura[i])
 
-    indeks_1 = int(input('Podaj pierwsza sygnature: '))
-    indeks_2 = int(input('Podaj druga sygnature: '))
+    indeks_1 = int(input('Podaj pierwsza sygnature: ')) - 1
+    indeks_2 = int(input('Podaj druga sygnature: ')) - 1
     
-    s1.setdefault(sygnatura[indeks_1]+sygnatura[indeks_2],s1[sygnatura[indeks_1]])
+    s1[ sygnatura[indeks_1]+sygnatura[indeks_2] ] = s1[sygnatura[indeks_1]]
     del(s1[sygnatura[indeks_1]])
     del(s1[sygnatura[indeks_2]])
                       
