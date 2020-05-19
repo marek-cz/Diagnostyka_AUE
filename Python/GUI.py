@@ -29,7 +29,7 @@ for opcja in opcje:
 
 backend.os.chdir('slowniki_uszkodzen')
 uklady = []
-UKLAD_DOMYSLNY = 'HPF_MFB'
+UKLAD_DOMYSLNY = 'Brak'
 METODA_DOMYSLNA = 'DRB'
 licznik = 1
 #------------------------------------------
@@ -49,7 +49,7 @@ def funkcjaPrzycisku1():
         wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
         licznik = 1
     if wynik != '':
-        wynik_klasyfikacji.insert(tk.END, str(licznik)+' '+ wynik +"\n") # wstaw rezultat do pola wyniku
+        wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
         licznik += 1
     
 def zmianaCOM(*args): # function called when var changes
@@ -89,9 +89,11 @@ def WyrysujDane():
     backend.WyrysujDane(wyborTypuPomiaru.get())
 
 def WyrysujSlownik():
+    if wyborUkladu.get() == 'Brak' : return -1
     backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get(), wyborTypuPomiaru.get())
 
 def WyrysujPomiary():
+    if wyborUkladu.get() == 'Brak' : return -1
     backend.WyrysujSlownik(wyborUkladu.get(), ileSkladowychPCA.get(), wyborTypuPomiaru.get(), True)
 
 def WypiszUklady():
@@ -132,6 +134,7 @@ menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
 wyborUkladu.set(UKLAD_DOMYSLNY)
 wyborUkladu.trace('w',zmianaUkladu) #seldzenie zmiennej wybor ukladu
 Uklad_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszUklady)
+Uklad_menu.add_radiobutton(label = 'Brak', value = 'Brak', variable = wyborUkladu)
 menu1.add_cascade(label = 'Układ',menu = Uklad_menu)
 
 ileSkladowychPCA.set(2) # domyslnie 2 skladowe glowne
