@@ -4,25 +4,41 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import struct
 
-def wyrysuj_okres(dane,widmo,frq,typ_pomiaru):
+plt.rc('axes', labelsize = 18)
+plt.rc('xtick', labelsize = 16)
+plt.rc('ytick', labelsize = 16)
+
+def wyrysuj_okres(dane, pobudzenie, widmo,frq,typ_pomiaru):
     
     typ_rysowania = 'bo'
-    if typ_pomiaru == 'TF' : typ_rysowania = 'b-'
+    sygnal = np.asarray(dane).astype('float64')
+    if typ_pomiaru == 'TF' :
+        typ_rysowania = 'b-'
+        sygnal -= dane[0]
+    else :
+        sygnal -= sygnal.mean()
+        
+
     
     widmo_dB = 20 * np.log10(widmo)
 
     fig, ax = plt.subplots(2,1)
-    ax[0].plot(dane,'b-')
-    ax[0].set_xlabel('Probka n')
-    ax[0].set_ylabel('U(t) [V]')
-    ax[0].set_title('Probki z ADC')
-    ax[1].plot( frq,widmo_dB,typ_rysowania) # plotting the spectrum
+    ax[0].plot(sygnal,'b-', label = 'Pomiar', linewidth = 4)
+    ax[0].plot(pobudzenie,'r-', label = 'Sygnał generowany', linewidth = 4)
+    ax[0].set_xlabel('Próbka n', fontsize=18)
+    ax[0].set_ylabel('U(t) [V]', fontsize=18)
+    ax[0].set_title('Przebiegi czasowe', fontsize=20)
+    ax[1].plot( frq,widmo_dB,typ_rysowania, label = 'Pomiar', linewidth = 4) # plotting the spectrum
     ax[1].set_xscale('log')
-    ax[1].set_xlabel('Czestotliwosc [Hz]')
-    ax[1].set_ylabel('|Y(f)| dB')
-    ax[1].set_title('Widmo')
+    ax[1].set_xlabel('Częstotliwość [Hz]', fontsize=18)
+    ax[1].set_ylabel('|Y(f)| [dB]', fontsize=18)
+    ax[1].set_title('Widmo aplitudowe pomiaru', fontsize=20)
 
-
+    ax[0].legend(loc="upper right", prop={'size': 16})
+    ax[0].grid()
+    ax[1].legend(loc="upper right", prop={'size': 16})
+    ax[1].grid()
+    plt.subplots_adjust(top = 0.92, bottom = 0.15 , hspace = 0.6)
     plt.show()
 
 def wyrysuj(dane):        
