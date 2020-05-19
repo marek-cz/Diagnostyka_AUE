@@ -39,21 +39,48 @@ DELAY_MAX = PER_MAX # roboczo :)
 os.chdir('slowniki_uszkodzen')
 SCIEZKA_DO_SLOWNIKOW = os.getcwd() # zapamietanie sciezki do slownikow uszkodzen
 os.chdir('..')
+SCIEZKA_DO_POCZATKOWA_GUI = os.getcwd()
+
+###########################################################
+def WczytajPrzebiegNominalny( nazwa_sygnalu, typ_sygnalu ) :
+    #sprawdzenie lokalziacji:
+    if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
+        os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    os.chdir('../Symulacje/sygnaly')
+
+    sygnal_uint16 = np.load(nazwa_sygnalu)
+    sygnal = sygnal_uint16.astype('float')
+
+    sygnal /= 4095
+
+    if typ_sygnalu == 'impulsowy':
+        sygnal -= sygnal[0]
+    else :
+        sygnal -= sygnal.mean()
+
+    os.chdir(SCIEZKA_DO_POCZATKOWA_GUI)
+    return sygnal
+
+##############################################
 
 #-------------------------------------------------------------------------------------------
 # zmienne globalne
 port_szeregowy = 0
 PER_INT = 31
-wyniki_pomiaru = [1,2,3,4,5,6,7,11,9]
+wyniki_pomiaru = 0.4 * np.sin(np.linspace(0,2 * np.pi, 500)) + 1 #np.array([])
 
+sinus_pobudzenie = WczytajPrzebiegNominalny('sinus_uint16.npy', 'okresowy')
+multisin_pobudzenie = WczytajPrzebiegNominalny('multisin_probki_uint16.npy', 'okresowy')
+sinc_pobudzenie = WczytajPrzebiegNominalny( 'sinc_uint16.npy', 'impulsowy')
 
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
 
     global wyniki_pomiaru
-    czestotliwosci_sinc = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
     wynik = ''
+
+    print(typ_pomiaru_string)
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     ########################################################################################################################
@@ -77,12 +104,19 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         NadajRezultatKlasyfikacji(wynik) # jezeli diagnozujemy, to nadaje wynik klasyfikacji
         
     ZamknijCOM(portCOM)
+    ########################################################################################################################
+    #   wyrysowanie pomiarów
 
+    if ( (opcje_pomiaru["Diagnozuj"]) or (opcje_pomiaru["Pomiar"]) ):
+        WyrysujDane( typ_pomiaru_string )
+    
     ########################################################################################################################
     #   archiwizacja wynikow pomiaru
+    
     if (opcje_pomiaru["Zapisz pomiar"]) : zapisDanych(wyniki_pomiaru,'pomiar',nazwa_ukladu,typ_pomiaru_string)
     if (opcje_pomiaru["Zapisz widmo"]) :
         if (typ_pomiaru == POMIAR_IMPULSOWY) :
+            czestotliwosci_sinc = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
             widmo,frq = ObliczWidmo('TF',wyniki_pomiaru,PER_INT, czestotliwosci_sinc)
         else :
             widmo,frq = ObliczWidmo('FFT',wyniki_pomiaru,PER_INT)
@@ -95,15 +129,23 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
 
 #-------------------------------------------------------------------------------------------
 def WyrysujDane(typ_sygnalu):
+    print(typ_sygnalu)
     typ_pomiaru = ''
-    
-    if typ_sygnalu == 'Sinc' : typ_pomiaru = 'TF'
-    else : typ_pomiaru = 'FFT'
+    pobudzenie = np.array([]) # definicja zmiennej
+    typ_pomiaru = 'FFT'
+    if typ_sygnalu == 'Sinc' :
+        typ_pomiaru = 'TF'
+        pobudzenie = sinc_pobudzenie
+    elif typ_sygnalu == 'Sinus' :
+        pobudzenie = sinus_pobudzenie
+    else :
+        pobudzenie = multisin_pobudzenie
+        
     funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     print(len(wyniki_pomiaru))
     widmo,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
-    funkcje.wyrysuj_okres(wyniki_pomiaru, widmo, frq, typ_pomiaru)
+    funkcje.wyrysuj_okres(wyniki_pomiaru, pobudzenie , widmo, frq, typ_pomiaru)
 
 #-------------------------------------------------------------------------------------------
 def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomiary = False):
@@ -557,6 +599,8 @@ def zapisDanych(dane,etykieta_pliku,nazwa_ukladu, typ_pomiaru_string):
 
     katalog = 'Multisin'
     if typ_pomiaru_string == 'Sinc' : katalog = 'Sinc'
+    elif typ_pomiaru_string == 'Sinus' : katalog = 'Sinus'
+    else : katalog = 'Multisin'
 
     if not(os.path.exists(katalog)):
         # jezeli folder nie istnieje tworzymy go
@@ -792,3 +836,4 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
         wynik = WybierzEtykieteMAX( slownik_wynikow )
 
     return wynik
+
