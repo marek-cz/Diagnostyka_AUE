@@ -109,13 +109,13 @@ def WypiszUklady():
 menu1 = tk.Menu(okno)
 # nizsze warstwy menu:
 program_menu = tk.Menu(menu1, tearoff = 0) # tearoff = 0 -> menu sie nie "odrywa"
-program_menu.add_command(label = "Wyrysuj pomiar", command = WyrysujDane) # Rysowanie
-program_menu.add_command(label = "Wyrysuj krzywe identyfikacyjne", command = WyrysujSlownik) # Rysowanie
-program_menu.add_command(label = "Wyrysuj pomiary PCA", command = WyrysujPomiary ) # Rysowanie
-program_menu.add_separator()
-program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
+program_menu.add_command(label = "Wykresy czasowe i widmo pomiaru", command = WyrysujDane) # Rysowanie
+program_menu.add_command(label = "Krzywe identyfikacyjne", command = WyrysujSlownik) # Rysowanie
+program_menu.add_command(label = "Krzywe identyfikacyjne i punkty pomiarowe", command = WyrysujPomiary ) # Rysowanie
+##program_menu.add_separator()
+##program_menu.add_command(label = "Zamknij", command = ZamknijProgram) # zamyka aplikacje
 
-menu1.add_cascade(label = "Program", menu = program_menu)
+menu1.add_cascade(label = "Wykresy", menu = program_menu)
 
 wyborPortuCOM.trace('w', zmianaCOM) # funkcja callback wywolywana za kazdym razem gdy wyborPortuCOM sie zmieni
 COM_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszPortyCOM)
