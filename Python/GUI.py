@@ -29,7 +29,7 @@ backend.os.chdir('slowniki_uszkodzen')
 uklady = []
 UKLAD_DOMYSLNY = 'Brak'
 METODA_DOMYSLNA = 'DRB'
-licznik = 1
+##licznik = 1
 #------------------------------------------
 #           FUNKCJE
 def funkcjaPrzycisku1():
@@ -43,12 +43,15 @@ def funkcjaPrzycisku1():
         opcje.setdefault(opcja, zmienneOpcji[opcja].get() )
 
     wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get())
-    if not (licznik % 15) :
-        wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
-        licznik = 1
-    if wynik != '':
-        wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
-        licznik += 1
+    wynik_klasyfikacji.delete('1.0',tk.END) # wyczyszczenie pola tekstowego
+    wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
+    backend.WyrysujDane(wyborTypuPomiaru.get())
+##    if not (licznik % 15) :
+##        wynik_klasyfikacji.delete(1.0,tk.END) # miesci sie 15 wpisow
+##        licznik = 1
+##    if wynik != '':
+##        wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
+##        licznik += 1
     
 def zmianaCOM(*args): # function called when var changes
     # this is where you'd set another variable to var.get()
@@ -219,7 +222,7 @@ button1 = tk.Button(ramka_opcje,text = "Wykonaj", bg = "orange", command = funkc
 button1.grid(column = 0, row = wiersz+1)
 #------------------------------------------------------------------------------------------------------
 # Pole tekstowe:
-wynik_klasyfikacji = tk.Text(master = ramka_wynik,height = 15, width = 20)
+wynik_klasyfikacji = tk.Text(master = ramka_wynik,height = 15, width = 20, wrap = tk.WORD)
 wynik_klasyfikacji.grid(column = 0, row = 1)
 #------------------------------------------------------------------------------------------------------
 
