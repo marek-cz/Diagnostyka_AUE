@@ -67,7 +67,7 @@ def WczytajPrzebiegNominalny( nazwa_sygnalu, typ_sygnalu ) :
 # zmienne globalne
 port_szeregowy = 0
 PER_INT = 31
-wyniki_pomiaru = 0.4 * np.sin(np.linspace(0,2 * np.pi, 500)) + 1 #np.array([])
+wyniki_pomiaru = np.array([])#0.4 * np.sin(np.linspace(0,2 * np.pi, 500)) + 1 #np.array([])
 
 sinus_pobudzenie = WczytajPrzebiegNominalny('sinus_uint16.npy', 'okresowy')
 multisin_pobudzenie = WczytajPrzebiegNominalny('multisin_probki_uint16.npy', 'okresowy')
@@ -92,23 +92,27 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
     ########################################################################################################################
     #   diagnoza wybranego ukladu
     if (opcje_pomiaru["Diagnozuj"]) :
-
+        
+        if nazwa_ukladu == 'Brak' : return 'Brak układu'
+        
         wyniki_pomiaru = GeneracjaIAkwizycjaDanych( nazwa_ukladu, typ_pomiaru, opoznienie ) # pobudzamy uklad i mierzymy jego odpowiedz
         widmo = wyznaczWidmo( nazwa_ukladu , opcje_pomiaru["Widmo na MCU"], typ_pomiaru_string, wyniki_pomiaru, PER_INT )# wyznaczenie widma
         #   KLASYFIKACJA USZKODZEN:
-        if metoda_klasyfikacji == 'Klasyczna' : wynik = KlasyfikacjaKlasyczna( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
-        elif metoda_klasyfikacji == 'DRB' :     wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
-        else : wynik = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
+        if metoda_klasyfikacji == 'Klasyczna' : wynik, x, d_min = KlasyfikacjaKlasyczna( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+        elif metoda_klasyfikacji == 'DRB' :     wynik, x, d_min  = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+        else : wynik, x, d_min  = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
     ########################################################################################################################       
 
         NadajRezultatKlasyfikacji(wynik) # jezeli diagnozujemy, to nadaje wynik klasyfikacji
+        wynik +='\nMinimalna odległość\nod krzywych\nd=' + str('%.9f'%d_min)
+        wynik += WspolrzednePCAString( x, liczba_skladowych_glownych )
         
     ZamknijCOM(portCOM)
     ########################################################################################################################
     #   wyrysowanie pomiarów
 
-    if ( (opcje_pomiaru["Diagnozuj"]) or (opcje_pomiaru["Pomiar"]) ):
-        WyrysujDane( typ_pomiaru_string )
+##    if ( (opcje_pomiaru["Diagnozuj"]) or (opcje_pomiaru["Pomiar"]) ):
+##        WyrysujDane( typ_pomiaru_string )
     
     ########################################################################################################################
     #   archiwizacja wynikow pomiaru
@@ -143,7 +147,6 @@ def WyrysujDane(typ_sygnalu):
         
     funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
-    print(len(wyniki_pomiaru))
     widmo,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
     funkcje.wyrysuj_okres(wyniki_pomiaru, pobudzenie , widmo, frq, typ_pomiaru)
 
@@ -687,7 +690,7 @@ def WybierzEtykieteMIN(slownik_odleglosci):
             d_min, etykieta = slownik_odleglosci[element], element
 
     print(etykieta,' : ',d_min)
-    return etykieta
+    return etykieta, d_min
 #-------------------------------------------------------------------------------------------
 
 def WybierzEtykieteMAX(slownik_odleglosci):
@@ -730,8 +733,13 @@ def DRB(x,c1,c2,s1,s2):
     s = s1
     if s2 > s : s = s2 # wybieramy wieksze std
     r = x - w # pomocniczy wektor
-    exp_arg = ( (-1) / (2*s*s) ) * np.dot(r,r)
-    return np.exp(exp_arg)
+    kwadrat_odleglosci = np.dot(r,r)
+    odleglosc = np.sqrt( kwadrat_odleglosci )
+
+    if odleglosc > 3*s : return 0, odleglosc  # obszar aktywacji neuronu 3 sigma
+    
+    exp_arg = ( (-1) / (2*s*s) ) * kwadrat_odleglosci
+    return np.exp(exp_arg), odleglosc
 
 #-------------------------------------------------------------------------------------------
 def wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_sygnalu):
@@ -760,6 +768,7 @@ def WarstwaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
     slownik_wynikow = {}
     klucze = list(slownik_uszkodzen.keys())
     liczba_punktow = 0
+    d_min = 10000000
     for klucz in klucze :
         if klucz != 'Nominalne':
             liczba_punktow = slownik_uszkodzen[klucz].shape[0]
@@ -773,9 +782,10 @@ def WarstwaDRB(slownik_uszkodzen, pomiar, slownik_odchylen_std):
             c2 = slownik_uszkodzen[uszkodzenie][i+1]
             s1 = slownik_odchylen_std[uszkodzenie][i]
             s2 = slownik_odchylen_std[uszkodzenie][i+1]
-            wynik = DRB(pomiar,c1,c2,s1,s1)
+            wynik, d = DRB(pomiar,c1,c2,s1,s1)
+            if d < d_min : d_min = d # w celu zwiekszenia liczby informacji na wyjsciu
             if wynik > slownik_wynikow[uszkodzenie] : slownik_wynikow[uszkodzenie] = wynik
-    return slownik_wynikow
+    return slownik_wynikow, d_min
 ###############################################################################################################################
 #-------------------------------------------------------------------------------------------
 def WczytanieCzestotliwosci(nazwa_ukladu, typ_slownika):
@@ -811,13 +821,13 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
             odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA3,x)
         else :
             odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
-        wynik = WybierzEtykieteMIN(odleglosc_slownik)
+        wynik, d_min = WybierzEtykieteMIN(odleglosc_slownik)
         # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
         czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
         if ( czy_nalezy ) : wynik = grupa
 
     
-    return wynik
+    return wynik, x, d_min 
 #-------------------------------------------------------------------------------------------
 def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_glownych):
     """
@@ -837,16 +847,34 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
         slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_pomiaru_string )
         slownik_odchylen_std = wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_pomiaru_string)
         if liczba_skladowych_glownych == 3 :
-            slownik_wynikow = WarstwaDRB(slownik_uszkodzen_PCA3, x, slownik_odchylen_std )
+            slownik_wynikow, d_min = WarstwaDRB(slownik_uszkodzen_PCA3, x, slownik_odchylen_std )
         else :
-            slownik_wynikow = WarstwaDRB(slownik_uszkodzen_PCA2, x, slownik_odchylen_std ) # domyslnie 2 skladowe glowne
-        wynik = WybierzEtykieteMAX( slownik_wynikow )
-        # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
-        czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
-        if ( czy_nalezy ) : wynik = grupa
+            slownik_wynikow, d_min  = WarstwaDRB(slownik_uszkodzen_PCA2, x, slownik_odchylen_std ) # domyslnie 2 skladowe glowne
+        # sprawdzamy czy nie mamy do czynienia z bledem wielokrotnym
+        if ( SprawdzCzyBladWielokrotny( slownik_wynikow ) ) : wynik = 'Wielokrotny'
+        else : # blad NIE JEST  wielokrotny
+            wynik = WybierzEtykieteMAX( slownik_wynikow ) # wybieramy krzywa identyfikacyjna
+            # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
+            czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
+            if ( czy_nalezy ) : wynik = grupa
 
-    return wynik
+    return wynik, x, d_min 
+#-------------------------------------------------------------------------------------------
+def SprawdzCzyBladWielokrotny(slownik_wynikow_DRB):
+    """
+    Zwraca True, jezeli okaze sie że punkt pomiarowy znalazł się poza obszarem aktywacji
+    wszystkich DRB. Oznacza to ze mamy do czynienia z bledem wielokrotnym -> punkt jest
+    daleko od krzywych identyfikacyjnych
+    Dla punktu poza obszarem aktywacji funkcja DRB zwraca 0. Jazeli wszystkie punkty zwrocily
+    0, to suma elementow slownika wynikow bedzie rowna 0.
+    """
+    suma = 0
+    for uszkodzenie in slownik_wynikow_DRB:
+        suma += slownik_wynikow_DRB[uszkodzenie]
 
+    if suma == 0 : return True
+    else : return False
+    
 #-------------------------------------------------------------------------------------------
 def grupy_niejednoznacznosci_GET():
     return grupy_niejednoznacznosci # zwraca wartosc zmiennej globalnej
@@ -890,3 +918,9 @@ def CzyUszkodzenieJestWGrupie(uszkodzenie, grupy_niejednoznacznosci):
 
     return (False, '')
 #-------------------------------------------------------------------------------------------
+def WspolrzednePCAString( punkt, liczba_skladowych_glownych ):
+    string_PCA = '\nSkładowe główne:'
+    for i in range( liczba_skladowych_glownych ):
+        string_PCA += '\nPCA' + str(i+1) + '='+ str('%.9f'%punkt[i])
+
+    return string_PCA
