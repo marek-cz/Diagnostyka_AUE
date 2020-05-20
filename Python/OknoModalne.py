@@ -10,10 +10,10 @@ class OknoModalne:
         self.top = tk.Toplevel(parent)
         self.top.transient(parent)
         self.top.grab_set()
-        self.top.geometry("400x410")
+        self.top.geometry("400x500")
         self.top.resizable(False, False)
         self.top.title('Grupy niejednoznacznosci')
-        self.top.bind("<Return>", self.ok)
+##        self.top.bind("<Return>", self.ok)
 
         self.Komunikat = tk.StringVar()
         self.Komunikat_usun = tk.StringVar()
@@ -52,13 +52,15 @@ class OknoModalne:
         ####################################################
         #   listy
 
-        self.lista_uszkodzen = tk.Listbox( ramka_uszkodzenia, selectmode = tk.MULTIPLE  ) #, yscrollcommand = scrollbar.set )
+        self.lista_uszkodzen = tk.Listbox( ramka_uszkodzenia, height = len(uszkodzenia) + 1 ,selectmode = tk.MULTIPLE  ) #, yscrollcommand = scrollbar.set )
         self.lista_uszkodzen.grid(column = 0, row = 1)
         for uszkodzenie in uszkodzenia:
             self.lista_uszkodzen.insert(tk.END, uszkodzenie )
 
-        self.lista_grup_niejedn = tk.Listbox( ramka_grupy_niejedn, selectmode = tk.SINGLE  ) #, yscrollcommand = scrollbar.set )
+        self.lista_grup_niejedn = tk.Listbox( ramka_grupy_niejedn, height = len(uszkodzenia) + 1 , selectmode = tk.SINGLE  ) #, yscrollcommand = scrollbar.set )
         self.lista_grup_niejedn.grid(column = 0, row = 1)
+        for grupa in grupy_niejednoznacznosci:
+            self.lista_grup_niejedn.insert(tk.END, grupa )
         ####################################################
 
         ####################################################
@@ -73,16 +75,6 @@ class OknoModalne:
         button_zapisz.grid(column = 1, row = 3 )
 
         ####################################################
-##        b = tk.Button(self.top, text="OK", command=self.ok)
-##        b.pack(pady=5)
-
-    def ok(self, event=None):
-        #print ("Has escrito ..." , self.e.get())
-        #self.valor.set(self.e.get())
-        self.top.destroy()
-
-    def cancel(self, event=None):
-        self.top.destroy()
 
     def dodajDoListy(self):
         zaznaczone_elementy_indeksy = self.lista_uszkodzen.curselection()
