@@ -1,7 +1,5 @@
-#------------------------------------------
-
-#------------------------------------------
 import tkinter as tk
+import OknoModalne
 import GUI_backend as backend
 #------------------------------------------
 ##### utworzenie instancji okna
@@ -105,6 +103,15 @@ def WypiszUklady():
     # dodanie ukladow do menu
     for uklad in uklady:
         Uklad_menu.add_radiobutton(label = uklad, value = uklad, variable = wyborUkladu)
+
+def grupujUszkodzenia():
+    ##uszkodzenia = ['C1-','C2-','R1-','R2-','R3-','C1+','C2+','R1+','R2+','R3+']
+    uszkodzenia = backend.uszkodzenia_GET( wyborUkladu.get(), wyborTypuPomiaru.get(), ileSkladowychPCA.get() )
+    grupy_niejednoznacznosci_lokalne = backend.grupy_niejednoznacznosci_GET()
+    okno_modalne = OknoModalne.OknoModalne(okno,uszkodzenia, grupy_niejednoznacznosci_lokalne )
+    okno.wait_window(okno_modalne.top)
+    print(grupy_niejednoznacznosci_lokalne)
+    backend.grupy_niejednoznacznosci_SET( grupy_niejednoznacznosci_lokalne )
  
 #------------------------------------------------------------------------------------------------------
 # top menu:
@@ -134,6 +141,9 @@ menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
 wyborUkladu.set(UKLAD_DOMYSLNY)
 wyborUkladu.trace('w',zmianaUkladu) #seldzenie zmiennej wybor ukladu
 Uklad_menu = tk.Menu(menu1, tearoff=0, postcommand=WypiszUklady)
+## dodanie mozliwosci grupowania uszkodzen
+Uklad_menu.add_command( label = "Grupuj", command = grupujUszkodzenia ) # grupowanie uszkodzen w obszary niejednoznaczności
+Uklad_menu.add_separator()
 Uklad_menu.add_radiobutton(label = 'Brak', value = 'Brak', variable = wyborUkladu)
 menu1.add_cascade(label = 'Układ',menu = Uklad_menu)
 
