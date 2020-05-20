@@ -73,14 +73,14 @@ sinus_pobudzenie = WczytajPrzebiegNominalny('sinus_uint16.npy', 'okresowy')
 multisin_pobudzenie = WczytajPrzebiegNominalny('multisin_probki_uint16.npy', 'okresowy')
 sinc_pobudzenie = WczytajPrzebiegNominalny( 'sinc_uint16.npy', 'impulsowy')
 
+grupy_niejednoznacznosci = []
+
 #-------------------------------------------------------------------------------------------
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
 
     global wyniki_pomiaru
     wynik = ''
-
-    print(typ_pomiaru_string)
     
     if (not (OtworzPortCOM(portCOM))) : return "COM fail" # bledne otwarcie portu
     ########################################################################################################################
@@ -169,8 +169,11 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
                 funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
 ##    os.chdir(SCIEZKA_DO_SLOWNIKOW)
     if liczba_skladowych_glownych == 3:
-        funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen_PCA3, p)
-    else : funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen_PCA2)
+        slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA3, grupy_niejednoznacznosci)
+        funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_zgrupowany, p)
+    else :
+        slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA2, grupy_niejednoznacznosci)
+        funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_zgrupowany)
 
 
 #-------------------------------------------------------------------------------------------
@@ -809,7 +812,11 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
         else :
             odleglosc_slownik = odlegloscPuntuOdSlownika(slownik_uszkodzen_PCA2,x) # domyslnie 2 skladowe glowne
         wynik = WybierzEtykieteMIN(odleglosc_slownik)
+        # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
+        czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
+        if ( czy_nalezy ) : wynik = grupa
 
+    
     return wynik
 #-------------------------------------------------------------------------------------------
 def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_glownych):
@@ -834,6 +841,52 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
         else :
             slownik_wynikow = WarstwaDRB(slownik_uszkodzen_PCA2, x, slownik_odchylen_std ) # domyslnie 2 skladowe glowne
         wynik = WybierzEtykieteMAX( slownik_wynikow )
+        # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
+        czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
+        if ( czy_nalezy ) : wynik = grupa
 
     return wynik
 
+#-------------------------------------------------------------------------------------------
+def grupy_niejednoznacznosci_GET():
+    return grupy_niejednoznacznosci # zwraca wartosc zmiennej globalnej
+
+def grupy_niejednoznacznosci_SET(nowa_wartosc):
+    global grupy_niejednoznacznosci
+    grupy_niejednoznacznosci = nowa_wartosc
+#-------------------------------------------------------------------------------------------
+def uszkodzenia_GET(nazwa_ukladu, typ_slownika, liczba_skladowych_glownych):
+    if nazwa_ukladu == 'Brak' : return []
+    else :
+        slownik2, slownik3 = WczytajSlownikiUszkodzen( nazwa_ukladu, typ_slownika)
+        if liczba_skladowych_glownych == 3 : lista_uszkodzen = list( slownik3.keys() )
+        else :  lista_uszkodzen = list( slownik2.keys() )
+
+        lista_uszkodzen.remove('Nominalne')
+        
+        return lista_uszkodzen
+#-------------------------------------------------------------------------------------------
+
+def grupujUszkodzeniaWSlowniku(slownik, grupy_niejednoznacznosci):
+    nowy_slownik = {}
+    for uszkodzenie in slownik :
+        czy_nalezy, grupa = CzyUszkodzenieJestWGrupie(uszkodzenie, grupy_niejednoznacznosci)
+        if ( czy_nalezy ):
+            # jezeli uszkodzenie znajduje sie w grupie niejednoznacznosci
+            if grupa in nowy_slownik : continue # jezlei taka etykieta juz jest w slowniku to nie dodajemy
+            else : nowy_slownik[grupa] = slownik[uszkodzenie]
+        else :
+            nowy_slownik[uszkodzenie] = slownik[uszkodzenie] # kiedy uszkodzenie nie nalezy do zadnej grupy
+
+    return nowy_slownik
+
+def CzyUszkodzenieJestWGrupie(uszkodzenie, grupy_niejednoznacznosci):
+    """
+    Zwraca zmienna boolowska oraz ewentualna grupe do ktorej
+    nalezy uszkodzenie
+    """
+    for grupa in grupy_niejednoznacznosci:
+        if ( grupa.find( uszkodzenie ) != -1 ) : return (True, grupa)
+
+    return (False, '')
+#-------------------------------------------------------------------------------------------
