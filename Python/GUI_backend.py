@@ -74,6 +74,8 @@ multisin_pobudzenie = WczytajPrzebiegNominalny('multisin_probki_uint16.npy', 'ok
 sinc_pobudzenie = WczytajPrzebiegNominalny( 'sinc_uint16.npy', 'impulsowy')
 
 grupy_niejednoznacznosci = []
+widmo_offline = np.array([  ])
+licznik_wywolan_offline = 0
 
 #-------------------------------------------------------------------------------------------
 
@@ -130,10 +132,47 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
 
     
     return wynik
+#-------------------------------------------------------------------------------------------
+def AnalizaOffline(nazwa_ukladu, typ_pomiaru, typ_pomiaru_string,liczba_skladowych_glownych, metoda_klasyfikacji, pomiar):
+    """ Obsluga klasyfikacji offline """
+    global wyniki_pomiaru
+    global PER_INT
+    global widmo_offline
+    global licznik_wywolan_offline
+    
+    if nazwa_ukladu == 'Brak' : return 'Brak układu'
+    
+    licznik_wywolan_offline += 1
+    wynik = ''
+    wyniki_pomiaru = pomiar # do ulatwienia ewentualnego rysowania
+    # wczytanie odpowiednich czestotliwosci
+    if typ_pomiaru == POMIAR_IMPULSOWY :
+        # pomiar sinc
+        f = WczytanieCzestotliwosci(nazwa_ukladu, 'Sinc')
+    else :
+        # pomiar multisin
+        f = WczytanieCzestotliwosci(nazwa_ukladu, 'Multisin')
+    PER_INT,liczba_probek = DobierzPER(f[0]) # dobieramy PER_INT
+    widmo = widmoNaPC(nazwa_ukladu, typ_pomiaru_string, pomiar, PER_INT)
+
+    #   KLASYFIKACJA USZKODZEN:
+    if metoda_klasyfikacji == 'Klasyczna' : wynik, x, d_min = KlasyfikacjaKlasyczna( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+    elif metoda_klasyfikacji == 'DRB' :     wynik, x, d_min  = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych )
+    else : wynik, x, d_min  = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
+
+    wynik +='\nMinimalna odległość\nod krzywych\nd=' + str('%.9f'%d_min)
+    wynik += WspolrzednePCAString( x, liczba_skladowych_glownych ) + '\n'
+    
+    widmo_offline = np.concatenate( (widmo_offline, widmo) )
+
+##    print(widmo_offline.shape)
+##    print(licznik_wywolan_offline)
+    
+    return wynik
 
 #-------------------------------------------------------------------------------------------
 def WyrysujDane(typ_sygnalu):
-    print(typ_sygnalu)
+##    print(typ_sygnalu)
     typ_pomiaru = ''
     pobudzenie = np.array([]) # definicja zmiennej
     typ_pomiaru = 'FFT'
@@ -178,6 +217,39 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA2, grupy_niejednoznacznosci)
         funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_zgrupowany)
 
+#-------------------------------------------------------------------------------------------
+def WyrysujSlownikOffline(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ):#,pomiary = False):
+
+    global widmo_offline
+    global licznik_wywolan_offline
+
+    widma = widmo_offline.reshape( ( int(licznik_wywolan_offline) ,widmo_offline.shape[0] // licznik_wywolan_offline ) )
+    widmo_offline = np.array( [ ] )
+    licznik_wywolan_offline = 0
+    
+    slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_slownika) # wczytanie domyslnego ukladu
+    fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_slownika)
+    funkcje.plt.clf()
+    funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
+    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
+        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
+        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+        funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
+
+    
+    p = np.transpose(widma)
+    if liczba_skladowych_glownych == 3: p = np.matmul( fi3, p )
+    else :
+        p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
+        funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+
+    if liczba_skladowych_glownych == 3:
+        slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA3, grupy_niejednoznacznosci)
+        funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_zgrupowany, p)
+    else :
+        slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA2, grupy_niejednoznacznosci)
+        funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_zgrupowany)
+
 
 #-------------------------------------------------------------------------------------------
 def WczytajPomiary(nazwa_ukladu, typ_pomiaru_string):
@@ -194,7 +266,7 @@ def WczytajPomiary(nazwa_ukladu, typ_pomiaru_string):
     os.chdir('Pomiary')
     nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day) + '/' + katalog
     if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
-        print("Nie ma katalogu")
+##        print("Nie ma katalogu")
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
         return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
     os.chdir(nazwa_katalogu_z_pomiarem)
@@ -332,7 +404,7 @@ def SprawdzGenerowanyPrzebieg( przebieg, czestotliwosc ):
     ramka_zapytania = 'I' + ' ' + TERMINATOR
     NadajCOM(ramka_zapytania)
     odpowiedz_MCU = OdczytajPomiar() # odpowiedz MCU na zapytanie
-    print( "Odpowiedz MCU na zapytanie o parametry : ", odpowiedz_MCU )
+##    print( "Odpowiedz MCU na zapytanie o parametry : ", odpowiedz_MCU )
     # dzielimy odpowiedz po spacjach
     odp = odpowiedz_MCU.split(' ')
     # rezultat np. ['I', '4', '10000', '0', '$']
@@ -689,7 +761,7 @@ def WybierzEtykieteMIN(slownik_odleglosci):
         if slownik_odleglosci[element] < d_min :
             d_min, etykieta = slownik_odleglosci[element], element
 
-    print(etykieta,' : ',d_min)
+##    print(etykieta,' : ',d_min)
     return etykieta, d_min
 #-------------------------------------------------------------------------------------------
 
@@ -700,7 +772,7 @@ def WybierzEtykieteMAX(slownik_odleglosci):
             d_max, etykieta = slownik_odleglosci[element], element
 
 
-    print(etykieta,' : ',d_max)
+##    print(etykieta,' : ',d_max)
     return etykieta
 #-------------------------------------------------------------------------------------------
 def odlegloscMahalanobisa(x,y,C):
@@ -811,7 +883,7 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
 
-    print(x)
+##    print(x)
     
     if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
         wynik = 'Nominalne'
@@ -825,6 +897,7 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
         # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
         czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
         if ( czy_nalezy ) : wynik = grupa
+        else : wynik = '{' + wynik + '}'
 
     
     return wynik, x, d_min 
@@ -839,7 +912,7 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
 
-    print(x)
+##    print(x)
     
     if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
         wynik = 'Nominalne'
@@ -857,6 +930,7 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
             # sprawdzenie czy uszkodzenie nalezy do grupy niejednozancznosci
             czy_nalezy, grupa = CzyUszkodzenieJestWGrupie( wynik, grupy_niejednoznacznosci )
             if ( czy_nalezy ) : wynik = grupa
+            else : wynik = '{' + wynik + '}'
 
     return wynik, x, d_min 
 #-------------------------------------------------------------------------------------------
@@ -919,7 +993,7 @@ def CzyUszkodzenieJestWGrupie(uszkodzenie, grupy_niejednoznacznosci):
     return (False, '')
 #-------------------------------------------------------------------------------------------
 def WspolrzednePCAString( punkt, liczba_skladowych_glownych ):
-    string_PCA = '\nSkładowe główne:'
+    string_PCA = '\nPunkt pomiarowy:'
     for i in range( liczba_skladowych_glownych ):
         string_PCA += '\nPCA' + str(i+1) + '='+ str('%.9f'%punkt[i])
 
