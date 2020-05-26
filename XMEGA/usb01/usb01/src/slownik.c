@@ -22,7 +22,7 @@ const char PROGMEM R2_M[] = "R2-";
 
 const char PROGMEM NOM_STR[] = "NOM";
 
-const char * const NapisyLCD[LICZBA_USZKODZEN+1] PROGMEM = {C1_P, C1_M, C2_P, C2_M, C3_P, C3_P, R1_P, R1_M, R2_P, R2_M, NOM_STR };
+const char * const NapisyLCD[LICZBA_USZKODZEN+1] PROGMEM = {C1_P, C1_M, C2_P, C2_M, C3_P, C3_M, R1_P, R1_M, R2_P, R2_M, NOM_STR };
 //###################################################
 
 
