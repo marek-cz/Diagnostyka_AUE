@@ -105,7 +105,7 @@ def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_st
         else : wynik, x, d_min  = KlasyfikacjaDRB( widmo, nazwa_ukladu, typ_pomiaru_string, liczba_skladowych_glownych ) # DRB domyslnie
     ########################################################################################################################       
 
-        NadajRezultatKlasyfikacji(wynik) # jezeli diagnozujemy, to nadaje wynik klasyfikacji
+        #NadajRezultatKlasyfikacji(wynik) # jezeli diagnozujemy, to nadaje wynik klasyfikacji
         wynik +='\nMinimalna odległość\nod krzywych\nd=' + str('%.9f'%d_min)
         wynik += WspolrzednePCAString( x, liczba_skladowych_glownych )
         
@@ -879,6 +879,7 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
     Klasyfikacja na podstawie odleglosci punktu pomiarowego od
     punktow wyznaczonych w symulacji
     """
+    d_min = 0
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
@@ -908,6 +909,7 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
     zwracaja wartosc w zaleznosci od odleglosci punktu od odcinka wyznaczonego przez punkty
     symulacyjne
     """
+    d_min = 0
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_pomiaru_string )
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
