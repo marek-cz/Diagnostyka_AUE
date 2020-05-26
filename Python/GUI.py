@@ -64,11 +64,15 @@ def funkcjaPrzycisku1():
         lista_plikow = backend.os.listdir()
         backend.os.chdir(SCIEZKA_DOMYSLNA)
         wynik_klasyfikacji.delete('1.0',tk.END) # wyczyszczenie pola tekstowego
+        licznik = 1
+        liczba_plikow_str = str(len(lista_plikow))
         for plik in lista_plikow:
             if not(weryfikacjaPliku( plik )) : continue # jezeli plik NIE przejdzie walidacji
             pomiar = backend.np.load(folder_z_pomiarami + '/'+plik)
-            wynik = backend.AnalizaOffline(wyborUkladu.get(), typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get(), pomiar)
+            wynik = str(licznik) + '/' + liczba_plikow_str + '\n' + plik + '\n'
+            wynik += backend.AnalizaOffline(wyborUkladu.get(), typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get(), pomiar)
             wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
+            licznik += 1
         scrollbar.config( command = wynik_klasyfikacji.yview ) # dopasowanie scrollbara do dlugosci rezultatu
         backend.WyrysujSlownikOffline( wyborUkladu.get(), ileSkladowychPCA.get(), wyborTypuPomiaru.get() )
 
@@ -255,9 +259,9 @@ entry_field_opoznienie.grid(column = 1, row = 1)
 #------------------------------------------------------------------------------------------------------
 # Radiobutton:
 TrybPracy.set('Online')
-radio_button_1 = tk.Radiobutton(ramka_opcje, text = 'Pomiar online', variable=TrybPracy, value = 'Online')#,command = funkcjaTrybPracy)
+radio_button_1 = tk.Radiobutton(ramka_opcje, text = 'Online', variable=TrybPracy, value = 'Online')#,command = funkcjaTrybPracy)
 radio_button_1.grid(row = 1,sticky = 'w')
-radio_button_2 = tk.Radiobutton(ramka_opcje, text = 'Pomiar offline', variable=TrybPracy, value = 'Offline' ,command = wyborFolderu)
+radio_button_2 = tk.Radiobutton(ramka_opcje, text = 'Offline', variable=TrybPracy, value = 'Offline' ,command = wyborFolderu)
 radio_button_2.grid(row = 2,sticky = 'w')
 #------------------------------------------------------------------------------------------------------
 # Chechbox'y:
