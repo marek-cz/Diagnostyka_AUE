@@ -54,7 +54,8 @@ def funkcjaPrzycisku1():
         wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get())
         wynik_klasyfikacji.delete('1.0',tk.END) # wyczyszczenie pola tekstowego
         wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
-        backend.WyrysujDane(wyborTypuPomiaru.get())
+        if (opcje["Pomiar"] or opcje["Diagnozuj"]) :
+            backend.WyrysujDane(wyborTypuPomiaru.get())
 
     else:
         """
