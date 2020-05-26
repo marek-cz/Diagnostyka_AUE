@@ -167,9 +167,9 @@ void Init(void)
 	lcd_init();
 	lcd_cls();
 	lcd_goto(0,0);
-	lcd_puttext_P(PSTR("USMIECHNIJ SIE!"));
-	lcd_goto(7,1);
-	lcd_puttext_P(PSTR(";)"));
+	lcd_puttext_P(PSTR("DIAGNOSIS OF"));
+	lcd_goto(0,1);
+	lcd_puttext_P(PSTR("ANALOG CIRCUIT"));
 }
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 //				FUNKCJE POMIAROWE
@@ -480,8 +480,11 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 	
 	lcd_cls();
 	lcd_goto(0,0);
-	lcd_puttext_P(PSTR("PRACA ZDALNA"));
+	lcd_puttext_P(PSTR("REMOTE CONTROL"));
 	lcd_goto(0,1);
+	
+	LED_PORT.OUTSET = (1<<LED_FAULT_PIN); // wygas LED uszkodzenia
+	LED_PORT.OUTSET = (1<<LED_NOM_PIN); // wygas LED NOMINALNE
 	
 	switch(ramka_danych[POLECENIE_POZYCJA])		//	pierwszy znak okresla znaczenie polecenia
 	{
@@ -501,10 +504,10 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 											break;
 			}
 			Generacja(*okres_timera,*przebieg,*liczba_probek);
-			lcd_puttext_P(PSTR("GENERACJA"));
+			lcd_puttext_P(PSTR("GENERATION"));
 			break;
 		case 'P' : // Pomiar
-			lcd_puttext_P(PSTR("POMIAR"));
+			lcd_puttext_P(PSTR("MEASURE"));
 			typ_pomiaru = ramka_danych[POM_TYP_Bp]; // odczyt flag pomiaru
 			if (typ_pomiaru & POMIAR_IMPULSOWY)
 			{
@@ -520,13 +523,13 @@ void analizaRamkiDanych(uint16_t * okres_timera,uint16_t * liczba_probek,uint8_t
 			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
 			unia_widmo.widmo = oblicz_DFT(czestotliwosc,*liczba_probek,probki_pomiaru);
 			NadajWidmo(unia_widmo.c,sizeof(float));
-			lcd_puttext_P(PSTR("WIDMO"));
+			lcd_puttext_P(PSTR("SPECTRUM - DFT"));
 			break;
 		case TRANSFORMATA_FOURIERA:// oblicz TF
 			czestotliwosc = znakiNaLiczbe(ramka_danych, WIDMO_CZESTOTLIWOSC_Bp);
 			unia_widmo.widmo = obliczTF(probki_pomiaru,*liczba_probek,czestotliwosc, *okres_timera);
 			NadajWidmo(unia_widmo.c,sizeof(float));
-			lcd_puttext_P(PSTR("FOURIER"));
+			lcd_puttext_P(PSTR("SPECTRUM - FT"));
 			break;
 		case INFORMACJE_O_PRZEBIEGU : // PC prosi o informacje o aktualnie generowanym przebiegu
 			NadajInfo(*okres_timera, *liczba_probek, * przebieg );
