@@ -59,9 +59,12 @@ def listUint2Float(lista_uint):
 #-------------------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen):
     #plt.clf()
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    plt.plot(A[0],A[1],'o', color = 'lime' , label = 'Nom')
     for uszkodzenie in slownik_uszkodzen:
-        #if uszkodzenie == 'Nominalne' :
-            #continue
+        if uszkodzenie == 'Nominalne' :
+            continue
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
         plt.plot(A[0],A[1],'o-', label = uszkodzenie)
@@ -77,17 +80,19 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen, tablica_pomiarow = 0):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    for uszkodzenie in slownik_uszkodzen:
-        #if uszkodzenie == 'Nominalne' : ax.plot(A[0][:1],A[1][:1],A[2][:1],'ko-', label = uszkodzenie)
-        A = slownik_uszkodzen[uszkodzenie]
-        A = np.transpose(A)
-        if uszkodzenie == 'Nominalne' :
-            A = A.reshape( (3,1) )
-            ax.plot(A[0][:],A[1][:],A[2][:],'o', label = uszkodzenie)
-        else : ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
 
     if (type(tablica_pomiarow) is np.ndarray ):  # sprawdzenie czy sa pomiary
         ax.plot(tablica_pomiarow[0],tablica_pomiarow[1],tablica_pomiarow[2],'ko', label = "Pomiar")
+    
+    A = slownik_uszkodzen['Nominalne']
+    A = A.reshape( (3,1) )
+    ax.plot(A[0][:],A[1][:],A[2][:],'o', color = 'lime' , label = 'Nom')
+    for uszkodzenie in slownik_uszkodzen:
+        if uszkodzenie == 'Nominalne' : continue
+        A = slownik_uszkodzen[uszkodzenie]
+        A = np.transpose(A)
+        ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
+
     ax.set_xlabel('PCA 1', fontsize=20)
     ax.set_ylabel('PCA 2', fontsize=20)
     ax.set_zlabel('PCA 3', fontsize=20)
