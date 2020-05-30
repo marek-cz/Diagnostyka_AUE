@@ -1,12 +1,7 @@
 """
 PLIK ZAWIERAJACY OPIS BADANEGO UKŁADU
 """
-
 import numpy as np
-
-
-
-
 #------------------------------------------------------------------------------
 def transmitancja(elementy):
     licznik_wyraz_wolny = 0

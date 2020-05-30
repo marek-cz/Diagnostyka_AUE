@@ -1,12 +1,7 @@
 """
 PLIK ZAWIERAJACY OPIS BADANEGO UKŁADU
 """
-
 import numpy as np
-
-
-
-
 #------------------------------------------------------------------------------
 def transmitancja(elementy):
     licznik_wyraz_wolny = 0
@@ -39,7 +34,6 @@ TOLERANCJA = {'R' : 0.01, 'C' : 0.04}
 
 #------------------------------------------------------------------------------------
 # 2. BADANE CZESTOTLIWOSCI
-#BADANE_CZESTOTLIWOSCI_MULTISIN = np.array([1,2,3,4,5,6,7,8,9,10]) * 20 # czestotliwosci dla pobudzenia wieloharmonicznego
 CZESTOTLIWOSC_PODSTAWOWA_MULTISIN = 20 # czestotliwosc podstawowa sygnalu wieloharmonicznego
 BADANE_CZESTOTLIWOSCI_SINC = np.array([5,6,7,8,9,10,11,12,13,14]) * 10  # czestotliwosci dla pobudzenia SINC
 #------------------------------------------------------------------------------------

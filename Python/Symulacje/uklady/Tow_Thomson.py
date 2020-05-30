@@ -43,6 +43,6 @@ CZESTOTLIWOSC_PODSTAWOWA_MULTISIN = 20 # czestotliwosc podstawowa sygnalu wieloh
 BADANE_CZESTOTLIWOSCI_SINC = np.array([5,6,7,8,9,10,11,12,13,14]) * 10  # czestotliwosci dla pobudzenia SINC
 #------------------------------------------------------------------------------------
 # 3. LICZBA LOSOWAN W ANALIZE MONTE CARLO -> PCA
-LICZBA_LOSOWAN_MC = 10000
+LICZBA_LOSOWAN_MC = 1000
 # 6. Liczba losowan do badania obszaru nominalnego
-LICZBA_LOSOWAN_PUNKT_NOMINALNY = 100000
+LICZBA_LOSOWAN_PUNKT_NOMINALNY = 1000
