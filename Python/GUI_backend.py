@@ -197,10 +197,10 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
     funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     p = 0
-    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
-        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
-        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
-        funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
+##    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
+##        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
+##        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+##        funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
     if pomiary : #and (type(p) is np.ndarray ): 
         p = WczytajPomiary(nazwa_ukladu, typ_slownika )
         if (type(p) is np.ndarray ):  # sprawdzenie czy sa pomiary
@@ -210,10 +210,15 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
                 p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
                 funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
 ##    os.chdir(SCIEZKA_DO_SLOWNIKOW)
+    
     if liczba_skladowych_glownych == 3:
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA3, grupy_niejednoznacznosci)
         funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_zgrupowany, p)
     else :
+        #if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
+        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
+        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+        funkcje.plt.plot(x,y, '-', label = 'OK', color = 'purple', linewidth = 4)
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA2, grupy_niejednoznacznosci)
         funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_zgrupowany)
 
@@ -231,10 +236,10 @@ def WyrysujSlownikOffline(nazwa_ukladu, liczba_skladowych_glownych , typ_slownik
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_slownika)
     funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
-    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
-        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
-        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
-        funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
+##    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
+##        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
+##        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+##        funkcje.plt.plot(x,y, '-', label = 'OK', linewidth = 4)
 
     
     p = np.transpose(widma)
@@ -247,6 +252,9 @@ def WyrysujSlownikOffline(nazwa_ukladu, liczba_skladowych_glownych , typ_slownik
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA3, grupy_niejednoznacznosci)
         funkcje.wyrysujKrzyweIdentyfikacyjne3D(slownik_zgrupowany, p)
     else :
+        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
+        x, y = funkcje.wyznaczElipse(C1, s_graniczna, wartosc_srednia)
+        funkcje.plt.plot(x,y, '-', label = 'OK', color = 'purple' , linewidth = 4)
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA2, grupy_niejednoznacznosci)
         funkcje.wyrysujKrzyweIdentyfikacyjne2D(slownik_zgrupowany)
 
