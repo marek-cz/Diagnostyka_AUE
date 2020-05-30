@@ -37,9 +37,9 @@ os.replace(sciezka_src,sciezka_dest)
 
 import uklad
 
-plt.rc('axes', labelsize = 16)
-plt.rc('xtick', labelsize=14)
-plt.rc('ytick', labelsize=14)
+plt.rc('axes', labelsize = 28)
+plt.rc('xtick', labelsize=28)
+plt.rc('ytick', labelsize=28)
 
 
 PROG_GORNY_PROCENTY = 150
@@ -80,7 +80,23 @@ def charCzestotliwosciowaModul(licznik_transmitancji,mianownik_transmitancji,f):
     # NORMALIZACJA!
     #modul /= modul.max()
     return modul
+#------------------------------------------------------------------------------
+def charCzestotliwosciowaComplex(licznik_transmitancji,mianownik_transmitancji,f):
+    f = np.asarray(f)
+    w = 2*np.pi*f
+    potegi_w_liczniku = np.arange(len(licznik_transmitancji)-1,-1,-1)
+    #print(potegi_w_liczniku)
+    potegi_w_mianowniku = np.arange(len(mianownik_transmitancji)-1,-1,-1)
+    char_czest_licznik = 0
+    char_czest_mianownik = 0
+    for i in range(len(licznik_transmitancji)):
+        char_czest_licznik += np.power((w*(1j)), potegi_w_liczniku[i] ) * licznik_transmitancji[i]
+        #print(char_czest_licznik)
+    for i in range(len(mianownik_transmitancji)):
+        char_czest_mianownik += np.power((w*(1j)), potegi_w_mianowniku[i] ) * mianownik_transmitancji[i]
+        #print(char_czest_mianownik)
 
+    return (char_czest_licznik/char_czest_mianownik)
 #------------------------------------------------------------------------------
 def monteCarloUniform(czestotliwosci, elementy_wykluczone_z_losowania = [],elementy = uklad.elementy  ,tolerancja = uklad.TOLERANCJA,liczba_losowanMC = uklad.LICZBA_LOSOWAN_MC):
     """
@@ -429,20 +445,19 @@ def PolaczDwieSygnatury(slownik):
                       
     return s1
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen):
+def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen, x_label = '', y_label = ''):
     #plt.clf()
     i = 0
     for uszkodzenie in slownik_uszkodzen:
-        if uszkodzenie == 'Nominalne' :
-            continue
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
-        plt.plot(A[0],A[1],'o-', label = uszkodzenie)
-    plt.xlabel('PCA 1', fontsize=20)
-    plt.ylabel('PCA 2', fontsize=20)
+        if uszkodzenie == 'Nominalne' : plt.plot(A[0],A[1],'ko', label = 'Nom')
+        else : plt.plot(A[0],A[1],'o-', label = uszkodzenie, linewidth = 2)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
     plt.axis('equal')
     plt.grid()
-    plt.legend(prop={'size': 22})
+    plt.legend(prop={'size': 30})
     plt.show()
 #------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen):
@@ -604,20 +619,19 @@ def wyrysujKrzyweIdentyfikacyjne3D_oszarNominalny(slownik_uszkodzen,badane_czest
     ax.legend()
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen  ):
+def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen, x_label='', y_label='', z_label='' ):
     #plt.clf()
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     i = 0
     for uszkodzenie in slownik_uszkodzen:
-        if uszkodzenie == 'Nominalne' :
-            continue
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
-        ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
-    ax.set_xlabel('PCA 1', fontsize=20)
-    ax.set_ylabel('PCA 2', fontsize=20)
-    ax.set_zlabel('PCA 3', fontsize=20)
+        if uszkodzenie == 'Nominalne' : ax.plot( [A[0]],[A[1]],[A[2]],'ko', label = 'Nom')
+        else : ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie, linewidth = 2)
+    ax.set_xlabel(x_label, fontsize=20, labelpad=20)
+    ax.set_ylabel(y_label, fontsize=20, labelpad=20)
+    ax.set_zlabel(z_label, fontsize=20, labelpad=20)
     ax.legend(prop={'size': 22})
     plt.grid()
     plt.show()
@@ -1002,3 +1016,235 @@ def zapiszSlownikDoPlikuTxt(slownik, nazwa_pliku):
             file.write(zapis_do_pliku)
         file.write('}\n')
     file.write('}\n')
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def slownikUszkodzenCzas(sygnal, Czas_trwania_pobudzenia, chwile_probkowania , elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW): # elementy slownika sa macierzami numPy
+    """
+    Do celow graficznych w pracy -> funkcja wyznaczajaca slownik uskzodzen w dziedzinie czasu
+    chwile_probkowania -> momenty czasu w ktorych probkujemy
+    """
+    
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    słownikUszkodzen = {}
+    f = 1 / Czas_trwania_pobudzenia
+    wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
+    
+    for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_minus.shape[0],len(chwile_probkowania)))
+        for wartosc in wartosci_minus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, f , False) # odpowiedz CZASOWA uszkodzonego ukladu!
+            wartosci = []
+            for chwila in chwile_probkowania:
+                ts = int ( (chwila / Czas_trwania_pobudzenia) * 500 )
+                wartosci.append( y[ts])
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '-'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_plus.shape[0],len(chwile_probkowania)))
+        for wartosc in wartosci_plus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            y,t = odpowiedzCzasowaUkladu( elementy_modyfikacje, sygnal, f , False) # odpowiedz CZASOWA uszkodzonego ukladu!
+            wartosci = []
+            for chwila in chwile_probkowania:
+                ts = int ( (chwila / Czas_trwania_pobudzenia) * 500 )
+                wartosci.append( y[ts])
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '+'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    y,t = odpowiedzCzasowaUkladu( elementy, sygnal, f , False) # odpowiedz CZASOWA uszkodzonego ukladu!
+    wartosci = []
+    for chwila in chwile_probkowania:
+        ts = int ( (chwila / Czas_trwania_pobudzenia) * 500 )
+        wartosci.append( y[ts])
+    słownikUszkodzen['Nominalne'] = wartosci
+
+
+    return słownikUszkodzen
+#---------------------------------------------------------------------------
+def wykresyModul(f,x_label='',y_label=''):
+    l,m = uklad.transmitancja(uklad.elementy)
+    widmo_modul = charCzestotliwosciowaModul(l,m,f)
+    modul_dB = 20*np.log10(widmo_modul)
+    plt.semilogx(f, modul_dB, '-',linewidth=4, label = 'Nom')
+    for element in uklad.elementy:
+        elementy_mod = copy.deepcopy(uklad.elementy)
+        elementy_mod[element] *= 1.25
+        l,m = uklad.transmitancja(elementy_mod)
+        widmo_modul = charCzestotliwosciowaModul(l,m,f)
+        modul_dB = 20*np.log10(widmo_modul)
+        plt.semilogx(f, modul_dB, '-',linewidth=4, label = '1.25'+element)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
+    #plt.axis('equal')
+    plt.grid()
+    plt.legend(prop={'size': 32})
+    plt.show()
+
+#---------------------------------------------------------------------------
+def wykresyFaza(f,x_label='',y_label=''):
+    l,m = uklad.transmitancja(uklad.elementy)
+    widmo = charCzestotliwosciowaComplex(l,m,f)
+    faza = np.angle(widmo)
+    plt.semilogx(f, faza, '-',linewidth=4, label = 'Nominalna')
+    for element in uklad.elementy:
+        elementy_mod = copy.deepcopy(uklad.elementy)
+        elementy_mod[element] *= 1.25
+        l,m = uklad.transmitancja(elementy_mod)
+        widmo = charCzestotliwosciowaComplex(l,m,f)
+        faza = np.angle(widmo)
+        plt.semilogx(f, faza, '-',linewidth=4, label = '1.25'+element)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
+    #plt.axis('equal')
+    plt.grid()
+    plt.legend(prop={'size': 32})
+    plt.show()
+#---------------------------------------------------------------------------
+def wykresRealis(f,x_label='',y_label=''):
+    l,m = uklad.transmitancja(uklad.elementy)
+    widmo = charCzestotliwosciowaComplex(l,m,f)
+    realis = np.real(widmo)
+    plt.semilogx(f, realis, '-',linewidth=4, label = 'Nominalna')
+    for element in uklad.elementy:
+        elementy_mod = copy.deepcopy(uklad.elementy)
+        elementy_mod[element] *= 1.25
+        l,m = uklad.transmitancja(elementy_mod)
+        widmo = charCzestotliwosciowaComplex(l,m,f)
+        realis = np.real(widmo)
+        plt.semilogx(f, realis, '-',linewidth=4, label = '1.25'+element)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
+    #plt.axis('equal')
+    plt.grid()
+    plt.legend(prop={'size': 32})
+    plt.show()
+#---------------------------------------------------------------------------
+def wykresImaginaris(f,x_label='',y_label=''):
+    l,m = uklad.transmitancja(uklad.elementy)
+    widmo = charCzestotliwosciowaComplex(l,m,f)
+    imaginaris = np.imag(widmo)
+    plt.semilogx(f, imaginaris, '-',linewidth=4, label = 'Nominalna')
+    for element in uklad.elementy:
+        elementy_mod = copy.deepcopy(uklad.elementy)
+        elementy_mod[element] *= 1.25
+        l,m = uklad.transmitancja(elementy_mod)
+        widmo = charCzestotliwosciowaComplex(l,m,f)
+        imaginaris = np.imag(widmo)
+        plt.semilogx(f, imaginaris, '-',linewidth=4, label = '1.25'+element)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
+    #plt.axis('equal')
+    plt.grid()
+    plt.legend(prop={'size': 32})
+    plt.show()
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def slownikUszkodzenReIm(f , elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW): # elementy slownika sa macierzami numPy
+    """
+    Do celow graficznych w pracy -> funkcja wyznaczajaca slownik uskzodzen w dziedzinie częstotliwosci
+    na płaszczyznie zespolonej Re(F(f)) i Im(F(f)) dla konkretnej czestotliwosci f!
+    """
+    
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    słownikUszkodzen = {}
+    wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
+    
+    for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_minus.shape[0],2))
+        for wartosc in wartosci_minus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            l,m = uklad.transmitancja(elementy_modyfikacje)
+            widmo = charCzestotliwosciowaComplex(l,m,f)            
+            wartosci = []
+            wartosci.append(np.real(widmo))
+            wartosci.append(np.imag(widmo))
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '-'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_plus.shape[0],2))
+        for wartosc in wartosci_plus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            l,m = uklad.transmitancja(elementy_modyfikacje)
+            widmo = charCzestotliwosciowaComplex(l,m,f)            
+            wartosci = []
+            wartosci.append(np.real(widmo))
+            wartosci.append(np.imag(widmo))
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '+'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    l,m = uklad.transmitancja(elementy_modyfikacje)
+    widmo = charCzestotliwosciowaComplex(l,m,f)            
+    wartosci = []
+    wartosci.append(np.real(widmo))
+    wartosci.append(np.imag(widmo))
+    słownikUszkodzen['Nominalne'] = wartosci
+
+
+    return słownikUszkodzen
+
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def slownikUszkodzenModulFaza(f , elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW): # elementy slownika sa macierzami numPy
+    """
+    Do celow graficznych w pracy -> funkcja wyznaczajaca slownik uskzodzen w dziedzinie częstotliwosci
+    na płaszczyznie zespolonej Re(F(f)) i Im(F(f)) dla konkretnej czestotliwosci f!
+    """
+    
+    elementy_modyfikacje = copy.deepcopy( elementy )
+    słownikUszkodzen = {}
+    wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
+    
+    for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_minus.shape[0],2))
+        for wartosc in wartosci_minus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            l,m = uklad.transmitancja(elementy_modyfikacje)
+            widmo = charCzestotliwosciowaComplex(l,m,f)            
+            wartosci = []
+            wartosci.append(np.absolute(widmo))
+            wartosci.append(np.angle(widmo))
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '-'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
+        i = 0
+        lista = np.zeros((wartosci_plus.shape[0],2))
+        for wartosc in wartosci_plus:
+            elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
+            l,m = uklad.transmitancja(elementy_modyfikacje)
+            widmo = charCzestotliwosciowaComplex(l,m,f)            
+            wartosci = []
+            wartosci.append(np.absolute(widmo))
+            wartosci.append(np.angle(widmo))
+            lista[i] = wartosci
+            i = i + 1
+        słownikUszkodzen[uszkodzony_element + '+'] = lista
+        elementy_modyfikacje = copy.deepcopy( elementy )
+
+    l,m = uklad.transmitancja(elementy_modyfikacje)
+    widmo = charCzestotliwosciowaComplex(l,m,f)            
+    wartosci = []
+    wartosci.append(np.absolute(widmo))
+    wartosci.append(np.angle(widmo))
+    słownikUszkodzen['Nominalne'] = wartosci
+
+
+    return słownikUszkodzen
