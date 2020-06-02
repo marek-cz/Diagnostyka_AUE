@@ -37,9 +37,9 @@ os.replace(sciezka_src,sciezka_dest)
 
 import uklad
 
-plt.rc('axes', labelsize = 28)
-plt.rc('xtick', labelsize=28)
-plt.rc('ytick', labelsize=28)
+plt.rc('axes', labelsize = 24)
+plt.rc('xtick', labelsize=24)
+plt.rc('ytick', labelsize=24)
 
 
 PROG_GORNY_PROCENTY = 150
@@ -353,17 +353,17 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
     else :
         if typ_widma == 'TF' :
             widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
-            print("Licze TF")
+            #print("Licze TF")
         else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
 
     wartosci_minus, wartosci_plus = generujWartosciElementowZnormalizowane(liczba_punktow_na_element)
 
-    print('widmo_sygnalu = ', widmo_sygnalu)
+    #print('widmo_sygnalu = ', widmo_sygnalu)
     
     for uszkodzony_element in elementy: # wartosci mniejsze od nominalnej
         klaster = []
         for wartosc in wartosci_minus:
-            print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
+            #print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal ) 
             klaster.append( char_amp_MC * widmo_sygnalu )
@@ -373,14 +373,14 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
     for uszkodzony_element in elementy: # wartosci wieksze od nominalnej
         klaster = []
         for wartosc in wartosci_plus:
-            print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
+            #print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal )
             klaster.append( char_amp_MC * widmo_sygnalu )
         słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
         
-    print("Obszar nominalny")
+    #print("Obszar nominalny")
     klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal) # punkt nominalny -> obszar tolerancji
     słownikUszkodzen.setdefault('Nominalne',klaster)
 
@@ -448,10 +448,13 @@ def PolaczDwieSygnatury(slownik):
 def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen, x_label = '', y_label = ''):
     #plt.clf()
     i = 0
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    plt.plot(A[0],A[1],'ko', label = 'Nom')
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
-        if uszkodzenie == 'Nominalne' : plt.plot(A[0],A[1],'ko', label = 'Nom')
+        if uszkodzenie == 'Nominalne' : continue
         else : plt.plot(A[0],A[1],'o-', label = uszkodzenie, linewidth = 2)
     plt.xlabel(x_label, fontsize=30)
     plt.ylabel(y_label, fontsize=30)
@@ -460,15 +463,16 @@ def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen, x_label = '', y_label = ''
     plt.legend(prop={'size': 30})
     plt.show()
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen):
+def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen, x_label = '', y_label = ''):
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
 
-    KOLORY_KRZYWE = {'R1' : 'k','R2' : 'y', 'R3' : 'c', 'C1' : 'r','C2':'g','C3' : 'b'}
+    KOLORY_KRZYWE = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_KRZYWE_KLUCZE = KOLORY_KRZYWE.keys()
     
     i = 0
     # obszary tolerancji
+    
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
@@ -485,17 +489,19 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen):
                         break
                 plt.plot(X[0],X[1],kolor+'o')
 
-    #tolerancja obszaru nominalnego:
+##    #tolerancja obszaru nominalnego:
     A = slownik_uszkodzen['Nominalne']
     A = np.transpose(A)
-    plt.plot(A[0],A[1],'o', label = 'Obszar tolerancji')
+    plt.plot(A[0],A[1],'o', color = 'purple')
     
     # Krzywe nominalne
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    plt.plot(A[0][:1],A[1][:1],'o', label = 'Nom', color = 'purple')
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
-            A = np.transpose(A)
-            plt.plot(A[0][:1],A[1][:1],'o', label = uszkodzenie)
+            continue
         else :
             krzywa_nominalna = []
             for klaster in A :
@@ -507,11 +513,11 @@ def wyrysujKrzyweIdentyfikacyjne2D_tolerancje(slownik_uszkodzen):
                     kolor = KOLORY_KRZYWE[klucz]
                     break
             plt.plot(krzywa_nominalna[0],krzywa_nominalna[1],kolor+'o-', label = uszkodzenie)
+    plt.xlabel(x_label, fontsize=30)
+    plt.ylabel(y_label, fontsize=30)
     plt.axis('equal')
-    plt.xlabel('PCA1')
-    plt.ylabel('PCA2')
-    
-    plt.legend()
+    plt.grid()
+    plt.legend(prop={'size': 30})
     plt.show()
 #------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne2D_tolerancje_pomiar(badane_czestotliwosci, slownik_uszkodzen,pomiar,elementy = uklad.elementy,tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC):
@@ -658,13 +664,14 @@ def wyrysujKrzyweIdentyfikacyjne3D_i_pomiar(slownik_uszkodzen,pomiar,badane_czes
     plt.show()
 
 #------------------------------------------------------------------------------
-def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(badane_czestotliwosci, slownik_uszkodzen,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
+def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(slownik_uszkodzen, x_label='', y_label='', z_label='' ):
     #plt.clf()
 
     KOLORY_OBSZAR_TOL = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_OBSZAR_TOL_KLUCZE = KOLORY_OBSZAR_TOL.keys()
 
-    KOLORY_KRZYWE = {'R1' : 'k','R2' : 'y', 'R3' : 'c', 'C1' : 'r','C2':'g','C3' : 'b'}
+    #KOLORY_KRZYWE = {'R1' : 'k','R2' : 'y', 'R3' : 'c', 'C1' : 'r','C2':'g','C3' : 'b'}
+    KOLORY_KRZYWE = {'R1' : 'b','R2' : 'g', 'R3' : 'r', 'C1' : 'c','C2':'y','C3' : 'k'}
     KOLORY_KRZYWE_KLUCZE = KOLORY_KRZYWE.keys()
     
     fig = plt.figure()
@@ -674,8 +681,9 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(badane_czestotliwosci, slownik_usz
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
-            A = np.transpose(A)
-            ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
+            continue
+##            A = np.transpose(A)
+##            ax.plot(A[0],A[1],A[2],'o', label = 'Obszar tolerancji')
         else :
             for klaster in A :
                 X = np.transpose(klaster)
@@ -685,13 +693,19 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(badane_czestotliwosci, slownik_usz
                         kolor = KOLORY_OBSZAR_TOL[klucz]
                         break
                 ax.plot(X[0],X[1],X[2],kolor+'o')
-
+                
+    # obszar tolernacji nominalny
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    #ax.plot(A[0],A[1],A[2],'o', color = 'purple')
+    ax.plot(A[0][:1],A[1][:1],A[2][:1],'o-', label = 'Nom', color = 'purple')
     # Krzywe nominalne
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         if uszkodzenie == 'Nominalne' :
-            A = np.transpose(A)
-            ax.plot(A[0][:1],A[1][:1],A[2][:1],'o-', label = uszkodzenie)
+            continue
+##            A = np.transpose(A)
+##            ax.plot(A[0][:1],A[1][:1],A[2][:1],'o-', label = uszkodzenie)
         else :
             krzywa_nominalna = []
             for klaster in A :
@@ -703,10 +717,17 @@ def wyrysujKrzyweIdentyfikacyjne3D_tolerancje(badane_czestotliwosci, slownik_usz
                     kolor = KOLORY_KRZYWE[klucz]
                     break
             ax.plot(krzywa_nominalna[0],krzywa_nominalna[1],krzywa_nominalna[2],kolor+'o-', label = uszkodzenie)
-    ax.set_xlabel('|H('+str(badane_czestotliwosci[0])+' Hz)|')
-    ax.set_ylabel('|H('+str(badane_czestotliwosci[1])+' Hz)|')
-    ax.set_zlabel('|H('+str(badane_czestotliwosci[2])+' Hz)|')
-    ax.legend()
+
+    # obszar tolernacji nominalny
+    A = slownik_uszkodzen['Nominalne']
+    A = np.transpose(A)
+    ax.plot(A[0],A[1],A[2],'o', color = 'purple')
+    
+    ax.set_xlabel(x_label, fontsize=20, labelpad=20)
+    ax.set_ylabel(y_label, fontsize=20, labelpad=20)
+    ax.set_zlabel(z_label, fontsize=20, labelpad=20)
+    ax.legend(prop={'size': 22})
+    plt.grid()
     plt.show()
 #------------------------------------------------------------------------------
 def wyrysujKrzyweIdentyfikacyjne3D_tolerancje_i_pomiar(badane_czestotliwosci, slownik_uszkodzen,pomiar,elementy = uklad.elementy, tolerancja = uklad.TOLERANCJA,liczba_losowan =uklad.LICZBA_LOSOWAN_MC ):
