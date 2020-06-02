@@ -16,6 +16,7 @@ wyborPortuCOM = tk.StringVar() #   zmienna zawierajaca indeks wybranego potru CO
 wyborTypuPomiaru = tk.StringVar()
 wyborUkladu = tk.StringVar()
 ileSkladowychPCA = tk.IntVar()
+pokazPomiarVar = tk.IntVar()
 MetodaKlasyfikacji = tk.StringVar()
 TrybPracy = tk.StringVar()
 typyPomiaru = ["Sinus","Wieloharmoniczny","Sinc"]
@@ -33,6 +34,7 @@ uklady = []
 UKLAD_DOMYSLNY = 'Brak'
 METODA_DOMYSLNA = 'DRB'
 SCIEZKA_DOMYSLNA = backend.os.getcwd()
+
 ##licznik = 1
 #------------------------------------------
 #           FUNKCJE
@@ -40,6 +42,7 @@ def funkcjaPrzycisku1():
     global czestotliwosc
     global opoznienie_ms
     global licznik
+    backend.funkcje.plt.close('all')
     opcje = {} # slownik na opcje do wyslania do analizy-> bez koniecznosci tk
     czestotliwosc = int(entry_field_czestotliwosc.get() )# pobranie wartosci czestotliwosci
     opoznienie_ms = entry_field_opoznienie.get() # pobranie wartosci czestotliwosci
@@ -54,7 +57,8 @@ def funkcjaPrzycisku1():
         wynik = backend.Analiza(czestotliwosc,opoznienie_ms,opcje,typyPomiaru.index(wyborTypuPomiaru.get()),wyborTypuPomiaru.get() ,wyborPortuCOM.get(), wyborUkladu.get(), ileSkladowychPCA.get(), MetodaKlasyfikacji.get())
         wynik_klasyfikacji.delete('1.0',tk.END) # wyczyszczenie pola tekstowego
         wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
-        if (opcje["Pomiar"] or opcje["Diagnozuj"]) :
+        if ( (opcje["Pomiar"] or opcje["Diagnozuj"]) and (pokazPomiarVar.get()) ) :
+            backend.funkcje.plt.close('all')
             backend.WyrysujDane(wyborTypuPomiaru.get())
 
     else:
@@ -75,6 +79,7 @@ def funkcjaPrzycisku1():
             wynik_klasyfikacji.insert(tk.END,  wynik +"\n") # wstaw rezultat do pola wyniku
             licznik += 1
         scrollbar.config( command = wynik_klasyfikacji.yview ) # dopasowanie scrollbara do dlugosci rezultatu
+        backend.funkcje.plt.close('all')
         backend.WyrysujSlownikOffline( wyborUkladu.get(), ileSkladowychPCA.get(), wyborTypuPomiaru.get() )
 
     
@@ -116,10 +121,12 @@ def WyrysujDane():
 
 def WyrysujSlownik():
     if wyborUkladu.get() == 'Brak' : return -1
+    backend.funkcje.plt.close('all')
     backend.WyrysujSlownik(wyborUkladu.get(),ileSkladowychPCA.get(), wyborTypuPomiaru.get())
 
 def WyrysujPomiary():
     if wyborUkladu.get() == 'Brak' : return -1
+    backend.funkcje.plt.close('all')
     backend.WyrysujSlownik(wyborUkladu.get(), ileSkladowychPCA.get(), wyborTypuPomiaru.get(), True)
 
 def WypiszUklady():
@@ -219,6 +226,9 @@ ramka_opcje.grid(column = 0, row = 1, sticky = 'w')
 ramka_wynik = tk.Frame(ramka_body, borderwidth = 1)
 ramka_wynik.grid(column = 1, row = 1, sticky = 'w')
 
+ramka_wyrysuj = tk.Frame(ramka_body, borderwidth = 1)
+ramka_wyrysuj.grid(column = 1, row = 0)#, sticky = 'w')
+
 ##ramka_folder = tk.Frame(ramka_body, borderwidth = 1)
 ##ramka_folder.grid(column = 0, row = 2, sticky = 'w')
 #------------------------------------------------------------------------------------------------------
@@ -228,7 +238,7 @@ label1.grid(column = 0, row = 0)
 
 label2 = tk.Label(ramka_czestotliwosc, text = "Częstotliwość [Hz] : ", font =('Arial', 12))
 label2.grid(column = 0, row = 0)
-label4 = tk.Label(ramka_czestotliwosc, text = "Opoznienie [ms] : ", font =('Arial', 12))
+label4 = tk.Label(ramka_czestotliwosc, text = "Opóznienie [ms] : ", font =('Arial', 12))
 label4.grid(column = 0, row = 1, sticky = 'w')
 
 label3 = tk.Label(ramka_opcje, text = "Opcje pomiaru : ", font =('Arial', 12))
@@ -272,6 +282,9 @@ for opcja in opcje: # dla kazdej opcji tworzymy przycisk
     c.grid(row = wiersz,sticky = 'w')
     wiersz = wiersz + 1
 
+pokazPomiarVar.set(0)
+Checkbutton_wyrysuj = tk.Checkbutton(ramka_wyrysuj,justify = 'left', text='Pokaż pomiar', variable = pokazPomiarVar )
+Checkbutton_wyrysuj.grid(column = 0, row = 0,sticky = tk.E)
 #------------------------------------------------------------------------------------------------------
 # Przyciski
 #button1 = tk.Button(ramka_body,text = "Testuj", bg = "orange", command = funkcjaPrzycisku1,padx = 5,pady = 5,font =('Arial', 12))
