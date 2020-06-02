@@ -184,7 +184,7 @@ def WyrysujDane(typ_sygnalu):
     else :
         pobudzenie = multisin_pobudzenie
         
-    funkcje.plt.clf()
+    #funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     widmo,frq = ObliczWidmo(typ_pomiaru , wyniki_pomiaru, PER_INT)
     funkcje.wyrysuj_okres(wyniki_pomiaru, pobudzenie , widmo, frq, typ_pomiaru)
@@ -194,7 +194,7 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
 
     slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_slownika) # wczytanie domyslnego ukladu
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_slownika)
-    funkcje.plt.clf()
+    #funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
     p = 0
 ##    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
@@ -234,7 +234,7 @@ def WyrysujSlownikOffline(nazwa_ukladu, liczba_skladowych_glownych , typ_slownik
     
     slownik_uszkodzen_PCA2, slownik_uszkodzen_PCA3 = WczytajSlownikiUszkodzen(nazwa_ukladu, typ_slownika) # wczytanie domyslnego ukladu
     fi2, fi3 = wczytajMacierzPCA(nazwa_ukladu, typ_slownika)
-    funkcje.plt.clf()
+    #funkcje.plt.clf()
     funkcje.plt.close('all') # zamkniecie wszystkich okien matplotlib
 ##    if liczba_skladowych_glownych == 2: # wyrysowanie elipsy dla 2D
 ##        wartosc_srednia, C1, s_graniczna = WczytajParametryElipsy(nazwa_ukladu,liczba_skladowych_glownych, typ_slownika)
