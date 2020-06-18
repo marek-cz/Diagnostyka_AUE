@@ -1029,7 +1029,7 @@ def zapiszSlownikDoPlikuTxt(slownik, nazwa_pliku):
         if element == 'Nominalne' : continue
         file.write('{')
         for punkt in slownik[element]:
-            punkt_str = str(punkt)
+            punkt_str =  np.array2string( punkt, precision = 15 ) #str( "{:.15f}".format( punkt ) ) #str(punkt)
             punkt_str = punkt_str.strip('[]')
             punkt_lista_str = punkt_str.split()
             punkt_str = punkt_lista_str[0] + ' , ' + punkt_lista_str[1]
