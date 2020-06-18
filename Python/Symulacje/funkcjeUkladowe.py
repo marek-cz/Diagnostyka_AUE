@@ -450,12 +450,12 @@ def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen, x_label = '', y_label = ''
     i = 0
     A = slownik_uszkodzen['Nominalne']
     A = np.transpose(A)
-    plt.plot(A[0],A[1],'ko', label = 'Nom')
+    plt.plot(A[0],A[1],'o', label = 'Nom', ms = 8, color = 'purple')
     for uszkodzenie in slownik_uszkodzen:
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
         if uszkodzenie == 'Nominalne' : continue
-        else : plt.plot(A[0],A[1],'o-', label = uszkodzenie, linewidth = 2)
+        else : plt.plot(A[0],A[1],'o-', label = uszkodzenie, linewidth = 4,ms = 8)
     plt.xlabel(x_label, fontsize=30)
     plt.ylabel(y_label, fontsize=30)
     plt.axis('equal')
