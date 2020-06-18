@@ -28,7 +28,7 @@ def wyrysuj_okres(dane, pobudzenie, widmo,frq,typ_pomiaru):
     ax[0].set_xlabel('Próbka n', fontsize=18)
     ax[0].set_ylabel('U(t) [V]', fontsize=18)
     ax[0].set_title('Przebiegi czasowe', fontsize=20)
-    ax[1].plot( frq,widmo_dB,typ_rysowania, label = 'Pomiar', linewidth = 4) # plotting the spectrum
+    ax[1].plot( frq,widmo_dB,typ_rysowania, label = 'Pomiar', linewidth = 4, ms = 10) # plotting the spectrum
     ax[1].set_xscale('log')
     ax[1].set_xlabel('Częstotliwość [Hz]', fontsize=18)
     ax[1].set_ylabel('|Y(f)| [dB]', fontsize=18)
@@ -61,13 +61,13 @@ def wyrysujKrzyweIdentyfikacyjne2D(slownik_uszkodzen):
     #plt.clf()
     A = slownik_uszkodzen['Nominalne']
     A = np.transpose(A)
-    plt.plot(A[0],A[1],'o', color = 'lime' , label = 'Nom')
+    plt.plot(A[0],A[1],'o', color = 'lime' , label = 'Nom', ms = 10)
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' :
             continue
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
-        plt.plot(A[0],A[1],'o-', label = uszkodzenie)
+        plt.plot(A[0],A[1],'o-', label = uszkodzenie, ms = 10, linewidth = 5)
     plt.xlabel('PCA 1', fontsize=20)
     plt.ylabel('PCA 2', fontsize=20)
     plt.axis('equal')
@@ -82,16 +82,16 @@ def wyrysujKrzyweIdentyfikacyjne3D(slownik_uszkodzen, tablica_pomiarow = 0):
     ax = fig.add_subplot(projection='3d')
 
     if (type(tablica_pomiarow) is np.ndarray ):  # sprawdzenie czy sa pomiary
-        ax.plot(tablica_pomiarow[0],tablica_pomiarow[1],tablica_pomiarow[2],'ko', label = "Pomiar")
+        ax.plot(tablica_pomiarow[0],tablica_pomiarow[1],tablica_pomiarow[2],'ko', label = "Pomiar", ms = 10)
     
     A = slownik_uszkodzen['Nominalne']
     A = A.reshape( (3,1) )
-    ax.plot(A[0][:],A[1][:],A[2][:],'o', color = 'lime' , label = 'Nom')
+    ax.plot(A[0][:],A[1][:],A[2][:],'o', color = 'lime' , label = 'Nom', ms = 10)
     for uszkodzenie in slownik_uszkodzen:
         if uszkodzenie == 'Nominalne' : continue
         A = slownik_uszkodzen[uszkodzenie]
         A = np.transpose(A)
-        ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie)
+        ax.plot(A[0],A[1],A[2],'o-', label = uszkodzenie, linewidth = 5, ms = 10)
 
     ax.set_xlabel('PCA 1', fontsize=20)
     ax.set_ylabel('PCA 2', fontsize=20)
