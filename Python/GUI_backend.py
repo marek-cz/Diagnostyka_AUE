@@ -208,7 +208,7 @@ def WyrysujSlownik(nazwa_ukladu, liczba_skladowych_glownych , typ_slownika ,pomi
             if liczba_skladowych_glownych == 3: p = np.matmul( fi3, p )
             else :
                 p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
-                funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+                funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar", ms = 10)
 ##    os.chdir(SCIEZKA_DO_SLOWNIKOW)
     
     if liczba_skladowych_glownych == 3:
@@ -246,7 +246,7 @@ def WyrysujSlownikOffline(nazwa_ukladu, liczba_skladowych_glownych , typ_slownik
     if liczba_skladowych_glownych == 3: p = np.matmul( fi3, p )
     else :
         p = np.matmul( fi2, p ) # domyslnie 2 skladowe ;)
-        funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar")
+        funkcje.plt.plot(p[0],p[1],'ko',label = "Pomiar", ms = 10)
 
     if liczba_skladowych_glownych == 3:
         slownik_zgrupowany = grupujUszkodzeniaWSlowniku(slownik_uszkodzen_PCA3, grupy_niejednoznacznosci)
