@@ -254,7 +254,7 @@ void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 	/*		WYSTAWIENIE WARTOSCI 0 NA DAC'A			*/
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
 	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
-	
+	delayTCC1(1);	// czekaj 1 ms
 	WyborPrzebiegu(SINC_500_NR,liczba_probek);
 	DACB.CH0DATA = probki_sygnalu[0];	// wpisz wartosc do rejestru -> wystaw na wyjscie
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
