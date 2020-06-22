@@ -167,14 +167,13 @@ def AnalizaOffline(nazwa_ukladu, typ_pomiaru, typ_pomiaru_string,liczba_skladowy
     
     widmo_offline = np.concatenate( (widmo_offline, widmo) )
 
-##    print(widmo_offline.shape)
-##    print(licznik_wywolan_offline)
+
     
     return wynik
 
 #-------------------------------------------------------------------------------------------
 def WyrysujDane(typ_sygnalu):
-##    print(typ_sygnalu)
+
     typ_pomiaru = ''
     pobudzenie = np.array([]) # definicja zmiennej
     typ_pomiaru = 'FFT'
@@ -276,7 +275,7 @@ def WczytajPomiary(nazwa_ukladu, typ_pomiaru_string):
     os.chdir('Pomiary')
     nazwa_katalogu_z_pomiarem = nazwa_ukladu + '_' + str(data.year) + '-' + str(data.month) + '-' + str(data.day) + '/' + katalog
     if not(os.path.exists(nazwa_katalogu_z_pomiarem)):
-##        print("Nie ma katalogu")
+
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
         return 0 # jesli nie ma folderu z pomiarami, to nie ma czego rysowac
     os.chdir(nazwa_katalogu_z_pomiarem)
@@ -327,7 +326,7 @@ def Generacja(czestotliwosc, typ_sygnalu):
     przebieg = PRZEBIEGI[przebieg_string]
     #ramka =  "G" + zamienNaZnaki(przebieg,PER,liczba_probek)
     ramka = 'G' + ' ' + str(przebieg) + ' ' + PER_string + ' ' + str(liczba_probek) + ' ' + TERMINATOR # pola sa ROZDZIELONE SPACJAMI!
-    #print(ramka)
+    
     NadajCOM(ramka)
 #-------------------------------------------------------------------------------------------
 def PomiarOkres(delay):
@@ -335,7 +334,7 @@ def PomiarOkres(delay):
     #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + chr(delay)
     delay_string = uint16NaStringa(delay)
     ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_OKRESOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
-    #print(ramka)
+    
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     napiecie = daneADCnaNapiecie(dane)
@@ -347,7 +346,7 @@ def PomiarImp(delay):
     #ramka =  "P" + chr(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + chr(delay)
     delay_string = uint16NaStringa(delay)
     ramka = 'P' + ' ' + str(POMIAR_FLAGI["POMIAR_IMPULSOWY"]) + ' ' + delay_string + ' ' + TERMINATOR #pola rozdzielone spacjami
-    #print(ramka)
+    
     NadajCOM(ramka)
     dane = OdczytajPomiar()
     napiecie = daneADCnaNapiecie(dane)
@@ -414,7 +413,7 @@ def SprawdzGenerowanyPrzebieg( przebieg, czestotliwosc ):
     ramka_zapytania = 'I' + ' ' + TERMINATOR
     NadajCOM(ramka_zapytania)
     odpowiedz_MCU = OdczytajPomiar() # odpowiedz MCU na zapytanie
-##    print( "Odpowiedz MCU na zapytanie o parametry : ", odpowiedz_MCU )
+
     # dzielimy odpowiedz po spacjach
     odp = odpowiedz_MCU.split(' ')
     # rezultat np. ['I', '4', '10000', '0', '$']
@@ -441,13 +440,13 @@ def WidmoMultiSin(czestotliwosc):
     for k in indeksy:
         k_string = uint16NaStringa(k)
         ramka = 'F'+' '+ k_string + ' ' + TERMINATOR
-        print(ramka)
+        
         NadajCOM(ramka)
         dane = OdczytajPomiar()
         dane = dane.strip(TERMINATOR)
         dane = dane.split()
         widmo = funkcje.listUint2Float(dane)
-        print(k * czestotliwosc," Hz widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
+        
         widmo_tablica = np.concatenate( ( widmo_tablica, np.array([widmo]) ) )
 
     return widmo_tablica
@@ -467,13 +466,13 @@ def WidmoSinc(tablica_czestotliwosci):
     for f in frq:
         f_string = uint16NaStringa(f)
         ramka = 'T'+' '+ f_string + ' ' + TERMINATOR
-        print(ramka)
+        
         NadajCOM(ramka)
         dane = OdczytajPomiar()
         dane = dane.strip(TERMINATOR)
         dane = dane.split()
         widmo = funkcje.listUint2Float(dane)
-        print(f,". widmo : ",widmo , " widmo [dB] :" , 20*np.log10(widmo) )
+        
         widmo_tablica = np.concatenate( ( widmo_tablica, np.array([widmo]) ) )
 
     return widmo_tablica
@@ -535,7 +534,7 @@ def DobierzPER(czestotliwosc):
 def NadajCOM(ramka):
     port_szeregowy.write(ramka.encode()) # nadajemy dane
     dane = port_szeregowy.read(len(ramka)) # uklad odpowiada ta sama sekwencja
-    print(dane.decode())
+    
 #-------------------------------------------------------------------------------------------
 def NadajRezultatKlasyfikacji( rezultat ):
     """
@@ -551,7 +550,7 @@ def OtworzCOM(portCOM):
     port_szeregowy = serial.Serial(port = portCOM,baudrate=BAUDRATE,parity=serial.PARITY_NONE,
                     stopbits=serial.STOPBITS_ONE,bytesize=serial.EIGHTBITS,timeout=TIMEOUT)
     if port_szeregowy.isOpen() :
-        #print(port_szeregowy.name + ' Pomyslnie otwarty! \n')
+        
         return True
     else :
         return False
@@ -564,10 +563,10 @@ def OtworzPortCOM(portCOM):
             else : return False
         else :
             if port_szeregowy.isOpen() :
-                print(port_szeregowy.name + ' Byl juz otwarty \n')
+                
                 return True
             else :
-                print("Blad otwarcia portu : ", portCOM)
+                
                 port_szeregowy = 0
                 return False
 #-------------------------------------------------------------------------------------------
@@ -577,9 +576,9 @@ def ZamknijCOM(portCOM):
         port_szeregowy.close() # zamkniecie portu
     except :
         a = 5 # nic ;)
-        #print()
+        
     port_szeregowy = 0
-    #print("Zamkniecie portu ",portCOM)
+    
 #-------------------------------------------------------------------------------------------
 def OdczytajPomiar():
     """
@@ -707,7 +706,7 @@ def odlegloscPuntuOdSlownika(slownik, punkt):
             r = slownik["Nominalne"] - punkt
             d2 = np.dot(r,r)
             d = np.sqrt(d2)
-            #print (uszkodzenie," : ",d)
+            
             d_min_slownik[uszkodzenie] = d
         else :
             d_min = 10000
@@ -716,7 +715,7 @@ def odlegloscPuntuOdSlownika(slownik, punkt):
                 d2 = np.dot(r,r)
                 d = np.sqrt(d2)
                 if d < d_min : d_min = d
-            #print (uszkodzenie," : ",d_min)
+
             d_min_slownik[uszkodzenie] = d_min
 
     return d_min_slownik
@@ -771,7 +770,7 @@ def WybierzEtykieteMIN(slownik_odleglosci):
         if slownik_odleglosci[element] < d_min :
             d_min, etykieta = slownik_odleglosci[element], element
 
-##    print(etykieta,' : ',d_min)
+
     return etykieta, d_min
 #-------------------------------------------------------------------------------------------
 
@@ -782,7 +781,7 @@ def WybierzEtykieteMAX(slownik_odleglosci):
             d_max, etykieta = slownik_odleglosci[element], element
 
 
-##    print(etykieta,' : ',d_max)
+
     return etykieta
 #-------------------------------------------------------------------------------------------
 def odlegloscMahalanobisa(x,y,C):
@@ -834,7 +833,7 @@ def wczytaj_slownik_std(nazwa_ukladu, liczba_skladowych_glownych, typ_sygnalu):
     
     os.chdir(SCIEZKA_DO_SLOWNIKOW + '/' + nazwa_katalogu)
 
-##    print(os.getcwd())
+
     
     slownik_std = {}
     lista_plikow = os.listdir()
@@ -894,7 +893,7 @@ def KlasyfikacjaKlasyczna(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_sklad
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
 
-##    print(x)
+
     
     if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
         wynik = 'Nominalne'
@@ -924,7 +923,7 @@ def KlasyfikacjaDRB(widmo, nazwa_ukladu , typ_pomiaru_string, liczba_skladowych_
     if liczba_skladowych_glownych == 3 : x = np.matmul(fi3, widmo)
     else : x = np.matmul(fi2, widmo) # domyslnie 2 skladowe glowne
 
-##    print(x)
+
     
     if SprawdzCzyStanNominalnyOdleglosc(nazwa_ukladu, x, liczba_skladowych_glownych, typ_pomiaru_string) :
         wynik = 'Nominalne'
