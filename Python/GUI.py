@@ -95,11 +95,10 @@ def zmianaUkladu(*args):
     xyz = 0 # nic :)
 
 def zmianaMetodyKlasyfikacji(*args):
-    print(MetodaKlasyfikacji.get())
     return 0
 
 def zmianaPCA(*args):
-    print("liczba skladowych glownych = ",ileSkladowychPCA.get())
+    return 0
 
 def WypiszPortyCOM():
     global portyCOM
@@ -145,16 +144,15 @@ def grupujUszkodzenia():
     grupy_niejednoznacznosci_lokalne = backend.grupy_niejednoznacznosci_GET()
     okno_modalne = OknoModalne.OknoModalne(okno,uszkodzenia, grupy_niejednoznacznosci_lokalne )
     okno.wait_window(okno_modalne.top)
-    print(grupy_niejednoznacznosci_lokalne)
+    
     backend.grupy_niejednoznacznosci_SET( grupy_niejednoznacznosci_lokalne )
 
-##def funkcjaTrybPracy():
-##    print("Tryb pracy : ", TrybPracy.get() )
+
 
 def wyborFolderu():
     global folder_z_pomiarami
     folder_z_pomiarami = tk.filedialog.askdirectory( parent=okno, initialdir = backend.os.getcwd(), title="Wybierz folder z pomiarami:")
-    #print('sciezka do folderu z pomiarami: ',folder_z_pomiarami)
+    
 
 def weryfikacjaPliku(nazwa_pliku):
     if (nazwa_pliku.find('pomiar') == -1) : return False
@@ -179,7 +177,7 @@ menu1.add_cascade(label="Port Szeregowy", menu=COM_menu)
 wyborTypuPomiaru.trace('w',zmianaMetodyPomiaru) # funkcja callback wywolywana za kazdym razem gdy wyborTypuPomiaru sie zmieni
 Pomiar_menu = tk.Menu(menu1, tearoff=0)
 for typ_pomiaru in typyPomiaru:
-    #print(typ_pomiaru)
+    
     Pomiar_menu.add_radiobutton(label = typ_pomiaru, value = typ_pomiaru, variable = wyborTypuPomiaru)
 wyborTypuPomiaru.set(typyPomiaru[1]) # domyslna wartosc
 menu1.add_cascade(label="Sygnał", menu=Pomiar_menu)
