@@ -244,23 +244,31 @@ void WyborPrzebiegu(uint8_t przebieg, uint16_t liczba_probek)
 
 void PomiarImpulsowy(uint16_t liczba_probek, volatile uint16_t opoznienie)
 {
+	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
+	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
+	delayTCC1(10);
 	/*		WYLACZENIE ADC		*/
 	DMA_CH1_CTRLA &= ~(DMA_CH_ENABLE_bm);	// wylaczenie transferu DMA z ADC
 	ADCA_CTRLA |= ADC_FLUSH_bm;				// wyczyszczenie potoku ADC
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE DMA DAC'A		*/
 	DMA_CH0_CTRLA &= ~(DMA_CH_ENABLE_bm);	// WYLACZENIE transmisji DMA DAC'a
+	delayTCC1(10);
 	//------------------------------------------------------------------------------
-	/*		WYSTAWIENIE WARTOSCI 0 NA DAC'A			*/
-	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
+	//while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na zakonczenie poprzedniej konwersji (jeszcze z DMA)
 	/*		WPISANIE SINC'A  DO TABLICY - DO GENERACJI		*/
-	delayTCC1(1);	// czekaj 1 ms
-	WyborPrzebiegu(SINC_500_NR,liczba_probek);
+	//delayTCC1(10);	// czekaj 1 ms
+	//WyborPrzebiegu(SINC_500_NR,liczba_probek);
+	
+	/*		 START TIMERA		*/
+	TCC0_CTRLA        =    TC_CLKSEL_DIV1_gc;         // bez prescalera
+	delayTCC1(10);
 	DACB.CH0DATA = probki_sygnalu[0];	// wpisz wartosc do rejestru -> wystaw na wyjscie
 	while ( ( DACB.STATUS & DAC_CH0DRE_bm ) == 0 ); // czekaj na wystawienie 0
 	//------------------------------------------------------------------------------
 	/*		WYLACZENIE TIMERA TAKTUJACEGO DAC		*/
 	TCC0_CTRLA = TC_CLKSEL_OFF_gc;			// wylaczenie timera
+	
 	//------------------------------------------------------------------------------
 	/*		 CZYSZCZENIE TABLICY PROBEK		*/
 	for(uint16_t i = 0;i<liczba_probek;i++)
