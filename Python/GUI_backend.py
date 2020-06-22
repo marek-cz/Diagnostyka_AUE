@@ -8,6 +8,7 @@ import numpy as np
 import os
 import funkcje
 import datetime
+import time
 #-------------------------------------------------------------------------------------------
 # stale
 F_CPU = int(32e6) # 32 MHz - czestotliwosc taktowania rdzenia
@@ -81,6 +82,7 @@ licznik_wywolan_offline = 0
 
 def Analiza(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji):
 
+    #print(czestotliwosc,opoznienie, opcje_pomiaru, typ_pomiaru, typ_pomiaru_string , portCOM, nazwa_ukladu, liczba_skladowych_glownych, metoda_klasyfikacji)
     global wyniki_pomiaru
     wynik = ''
     
@@ -1008,3 +1010,64 @@ def WspolrzednePCAString( punkt, liczba_skladowych_glownych ):
         string_PCA += '\nPCA' + str(i+1) + '='+ str('%.9f'%punkt[i])
 
     return string_PCA
+#--------------------------------------------------------------------------------------------
+def TestowanieUkladu():
+    opcje_pomiaru_multisin = {'Generacja': 0, 'Pomiar': 0, 'Zapisz pomiar': 0, 'Zapisz widmo': 1, 'Widmo na MCU': 0, 'Diagnozuj': 1}
+    opcje_pomiaru_sinc = {'Generacja': 0, 'Pomiar': 0, 'Zapisz pomiar': 0, 'Zapisz widmo': 1, 'Widmo na MCU': 0, 'Diagnozuj': 1}
+    delay = 500 # ms
+    typ_pomiaru_sinus           = 0 
+    typ_pomiaru_multisin 	= 1
+    typ_pomiaru_sinc 		= 2
+    typ_pomiaru_sinus_string    = 'Sinus'
+    typ_pomiaru_multisin_string = 'Wieloharmoniczny'
+    typ_pomiaru_sinc_string     = 'Sinc'
+
+    port_COM = 'COM23'
+
+    nazwa_ukladu = 'BPF_MFB'
+    nazwa_logu = nazwa_ukladu+'_log.txt'
+
+    liczba_PCA = 2
+    metoda_klasyfikacji = 'DRB'
+
+    odstep_miedzy_diagnozami_s = 1.5 # pomiar co 3 sekundy
+
+    f = 100
+
+    opcje_pomiaru_impulsowego = {'Generacja': 0, 'Pomiar': 1, 'Zapisz pomiar': 0, 'Zapisz widmo': 0, 'Widmo na MCU': 0, 'Diagnozuj': 0}
+    generacja = {'Generacja': 1, 'Pomiar': 0, 'Zapisz pomiar': 0, 'Zapisz widmo': 0, 'Widmo na MCU': 0, 'Diagnozuj': 0}
+
+    licznik = 1
+    #petla!
+    while(licznik < 2001):
+        print(licznik)
+        # klasyfikacja
+        #klasyfikacja_multisin = Analiza(f,delay, opcje_pomiaru_multisin, typ_pomiaru_multisin, typ_pomiaru_multisin_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+        #time.sleep(odstep_miedzy_diagnozami_s)
+        klasyfikacja_sinc = Analiza(f,delay, opcje_pomiaru_sinc, typ_pomiaru_sinc, typ_pomiaru_sinc_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+        print(klasyfikacja_sinc)
+##        Analiza(f,delay, generacja, typ_pomiaru_sinus, typ_pomiaru_sinus_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+##        time.sleep(odstep_miedzy_diagnozami_s) # odczekaj 10 sekund do nastepnej iteracji
+##        Analiza(f,delay, generacja, typ_pomiaru_multisin, typ_pomiaru_multisin_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+##        time.sleep(odstep_miedzy_diagnozami_s) # odczekaj 10 sekund do nastepnej iteracji
+##        Analiza(f,delay, generacja, typ_pomiaru_sinc, typ_pomiaru_sinc_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+
+##        Analiza(f,delay, generacja, typ_pomiaru_sinc, typ_pomiaru_sinc_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+##        time.sleep(odstep_miedzy_diagnozami_s) # odczekaj 
+##        klasyfikacja_multisin = Analiza(f,delay, opcje_pomiaru_multisin, typ_pomiaru_multisin, typ_pomiaru_multisin_string , port_COM, nazwa_ukladu, liczba_PCA, metoda_klasyfikacji)
+
+##        OtworzPortCOM(port_COM)
+##        pomiar =  PomiarImp(delay)
+##        ZamknijCOM(port_COM)
+        
+        #######################################
+        os.chdir("C:/Users/Marek/Desktop/testowanie_blad_DAC") # folder z logiem
+        # zapis do pliku
+        file = open(nazwa_logu, "a")
+        file.write(str(licznik) + '\nSinc (dodany delay):\n' + klasyfikacja_sinc + '\n\n' )
+##        file.write(str(licznik) + '\nSuma pomiaru :\n' + str(pomiar.sum()) + '\n\n' )
+        file.close()
+        os.chdir(SCIEZKA_DO_SLOWNIKOW) # powrot do pierwotnej lokalizacji
+        time.sleep(odstep_miedzy_diagnozami_s) # odczekaj 10 sekund do nastepnej iteracji
+        licznik += 1
+        #######################################
