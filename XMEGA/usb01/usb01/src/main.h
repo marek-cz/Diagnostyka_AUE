@@ -4,6 +4,18 @@
  * Created: 2020-01-18 11:49:27
  *  Author: Marek
  */ 
+ 
+ /*
+ 
+ Kod w C zrealizowany na podstawie:
+ - Francuz Tomasz : "AVR praktyczne projekty"
+ - Francuz Tomasz : "AVR układy peryferyjne"
+ - pracy dyplomowej mgr inż. Wojciech Koter
+ - http://mikrokontrolery.blogspot.com/2011/03/Xmega-emulacja-portu-szeregowego-rs-232-na-USB.html
+ - https://forum.atnel.pl/topic15184.html
+ - https://www.elektroda.pl/rtvforum/topic3651268.html
+ - Funkcje (w pliku slownik.c) : iloczyn_skalarny(), odleglosc_Mahalanobisa() i PCA() napisał inż. Piotr Czekała - wykorzystano za zgodą Autora
+ */
 
 
 #ifndef MAIN_H_

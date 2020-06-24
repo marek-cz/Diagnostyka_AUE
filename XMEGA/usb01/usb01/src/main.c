@@ -28,6 +28,18 @@
 /*
  * Support and FAQ: visit <a href="https://www.microchip.com/support/">Microchip Support</a>
  */
+ 
+ /*
+  Kod w C zrealizowany na podstawie:
+ - Francuz Tomasz : "AVR praktyczne projekty"
+ - Francuz Tomasz : "AVR uk³ady peryferyjne"
+ - pracy dyplomowej mgr in¿. Wojciech Koter
+ - http://mikrokontrolery.blogspot.com/2011/03/Xmega-emulacja-portu-szeregowego-rs-232-na-USB.html
+ - https://forum.atnel.pl/topic15184.html
+ - https://www.elektroda.pl/rtvforum/topic3651268.html
+ - Funkcje (w pliku slownik.c) : iloczyn_skalarny(), odleglosc_Mahalanobisa() i PCA() napisa³ in¿. Piotr Czeka³a - wykorzystano za zgod¹ Autora
+ */
+ 
 //-----------------------------------------------------------------------------------------------
 
 #include <asf.h>
