@@ -283,7 +283,7 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
     
     if typ_widma == 'TF' :
         widmo_sygnalu = sygnaly.TransformataFouriera(sygnal,badane_czestotliwosci)      # TF -> Transformata Fouriera -> sinc
-        print("Licze TF")
+        #print("Licze TF")
     else : widmo_sygnalu = sygnaly.widmo(sygnal, badane_czestotliwosci)                 # domyslnie metoda wieloharmoniczna - FFT
 
     
@@ -333,8 +333,8 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
     else : # obliczenia na podstawie wzoru : Y(f) = H(f) * X(f)
         (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
         charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
-        wartosci = charAmpl * widmo_sygnalu * uklad.WZMOCNIENIE_TORU_POMIAROWEGO # H(f) * X(f)
-    słownikUszkodzen.setdefault('Nominalne',wartosci)
+        wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
+    słownikUszkodzen.setdefault('Nominalne',wartosci * uklad.WZMOCNIENIE_TORU_POMIAROWEGO)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
 
