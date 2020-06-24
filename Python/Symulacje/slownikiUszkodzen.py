@@ -151,6 +151,7 @@ def PCA_3_skladowe(PCA_FI_3_SKLADOWE,ObszarTolerancji, slownik_uszkodzen):
     funkcjeUkladowe.os.chdir('../')  # <- powrot do katalogu Slowniki_Multisin
 ###########################################################################################################
 def Symulacja(ObszarTolerancji, f, sygnal, typ_widma, slownik_uszkodzen, na_podstawie_odp_czasowej = False):
+    ObszarTolerancji *= funkcjeUkladowe.uklad.WZMOCNIENIE_TORU_POMIAROWEGO # dostosowanie do wzmocnienia toru pomiarowego
     decyzja = 'T'#input("Czy symulowac macierz danych? T/N ")
     slownik_MC = {} # inicjalizacja -> zmienna widoczna poza if'em
     if decyzja == 'T' :

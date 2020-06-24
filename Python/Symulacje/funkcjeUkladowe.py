@@ -303,7 +303,7 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
                 (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
                 charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
                 wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
-            lista[i] = wartosci
+            lista[i] = wartosci * uklad.WZMOCNIENIE_TORU_POMIAROWEGO
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '-',lista)
         elementy_modyfikacje = copy.deepcopy( elementy )
@@ -321,7 +321,7 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
                 (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
                 charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
                 wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
-            lista[i] = wartosci
+            lista[i] = wartosci * uklad.WZMOCNIENIE_TORU_POMIAROWEGO
             i = i + 1
         słownikUszkodzen.setdefault(uszkodzony_element + '+',lista)
         elementy_modyfikacje = copy.deepcopy( elementy )
@@ -333,7 +333,7 @@ def slownikUszkodzen(badane_czestotliwosci, sygnal, typ_widma, elementy = uklad.
     else : # obliczenia na podstawie wzoru : Y(f) = H(f) * X(f)
         (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
         charAmpl = charCzestotliwosciowaModul(licznik, mianownik,badane_czestotliwosci) # H(f)
-        wartosci = charAmpl * widmo_sygnalu # H(f) * X(f)
+        wartosci = charAmpl * widmo_sygnalu * uklad.WZMOCNIENIE_TORU_POMIAROWEGO # H(f) * X(f)
     słownikUszkodzen.setdefault('Nominalne',wartosci)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
@@ -366,7 +366,7 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
             #print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal ) 
-            klaster.append( char_amp_MC * widmo_sygnalu )
+            klaster.append( char_amp_MC * widmo_sygnalu * uklad.WZMOCNIENIE_TORU_POMIAROWEGO )
         słownikUszkodzen.setdefault(uszkodzony_element + '-',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
 
@@ -376,13 +376,13 @@ def slownikUszkodzenMonteCarlo(badane_czestotliwosci, sygnal, typ_widma,elementy
             #print("Uszkodzony element : ", uszkodzony_element,' = ', wartosc,'%')
             elementy_modyfikacje[uszkodzony_element] = elementy[uszkodzony_element] * wartosc/100
             char_amp_MC = monteCarloNormal(elementy_wykluczone_z_losowania = [uszkodzony_element], elementy = elementy_modyfikacje, czestotliwosci = badane_czestotliwosci , liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal )
-            klaster.append( char_amp_MC * widmo_sygnalu )
+            klaster.append( char_amp_MC * widmo_sygnalu * uklad.WZMOCNIENIE_TORU_POMIAROWEGO )
         słownikUszkodzen.setdefault(uszkodzony_element + '+',klaster)
         elementy_modyfikacje = copy.deepcopy( elementy )
         
     #print("Obszar nominalny")
     klaster = widmo_sygnalu * monteCarloNormal(czestotliwosci = badane_czestotliwosci, liczba_losowanMC = liczba_losowanMC, na_podstawie_odp_czasowej = na_podstawie_odp_czasowej, sygnal = sygnal) # punkt nominalny -> obszar tolerancji
-    słownikUszkodzen.setdefault('Nominalne',klaster)
+    słownikUszkodzen.setdefault('Nominalne',klaster * uklad.WZMOCNIENIE_TORU_POMIAROWEGO)
 
     #s = LaczenieSygnatur(słownikUszkodzen)
 
