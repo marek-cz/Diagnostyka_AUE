@@ -11,7 +11,7 @@ class OknoModalne:
         self.top.transient(parent)
         self.top.grab_set()
         self.top.geometry("400x500")
-        self.top.resizable(False, False)
+        self.top.resizable(True, True)
         self.top.title('Grupy niejednoznacznosci')
 ##        self.top.bind("<Return>", self.ok)
 
