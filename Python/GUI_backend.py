@@ -669,7 +669,12 @@ def ObliczWidmo(typ_widma,dane,PER, czestotliwosci = np.array([0])):
 def zapisDanych(dane,etykieta_pliku,nazwa_ukladu, typ_pomiaru_string):
     dane = np.asarray(dane)
     data = datetime.datetime.now()
-    nazwa_pliku = etykieta_pliku + '_' + str( data.hour ) + '-' + str( data.minute )+ '-' + str( data.second )
+    
+    slownik_data = {'h':str( data.hour ),'min':str( data.minute ), 's': str( data.second ) }
+    for element in slownik_data: # zeby dobrze sortowac pliki nie moze byc np. 14-1-2 -> musi byc 14-01-02
+        if ( len( slownik_data[element] ) == 1 ) : slownik_data[element] = '0'+slownik_data[element]
+        
+    nazwa_pliku = etykieta_pliku + '_' + slownik_data['h'] + '-' + slownik_data['min']+ '-' + slownik_data['s']
     #sprawdzenie lokalziacji:
     if os.getcwd() != SCIEZKA_DO_SLOWNIKOW :
         os.chdir(SCIEZKA_DO_SLOWNIKOW)
