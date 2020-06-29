@@ -1,3 +1,4 @@
+# na podstawie : https://www.manejandodatos.es/2014/10/modal-forms-tkinter-python/
 import tkinter as tk
 
 
