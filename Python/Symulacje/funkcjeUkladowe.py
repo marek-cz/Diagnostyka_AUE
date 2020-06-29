@@ -1023,11 +1023,13 @@ def odpowiedzCzasowaUkladu(elementy, tablica_napiec_pobudzenia_uint16, czestotli
     
 #------------------------------------------------------------------------------------------------------------------------------------------------------------
 def zapiszSlownikDoPlikuTxt(slownik, nazwa_pliku):
+    licznik = 0
     file = open(nazwa_pliku, 'w')
     file.write('{\n')
     for element in slownik:
         if element == 'Nominalne' : continue
-        file.write('{')
+        if licznik > 0 : file.write(',')
+        file.write('\n{ // ' + element + '\n')
         for punkt in slownik[element]:
             punkt_str =  np.array2string( punkt, precision = 15 ) #str( "{:.15f}".format( punkt ) ) #str(punkt)
             punkt_str = punkt_str.strip('[]')
@@ -1035,8 +1037,38 @@ def zapiszSlownikDoPlikuTxt(slownik, nazwa_pliku):
             punkt_str = punkt_lista_str[0] + ' , ' + punkt_lista_str[1]
             zapis_do_pliku = '{ ' + punkt_str + ' },\n'
             file.write(zapis_do_pliku)
-        file.write('}\n')
-    file.write('}\n')
+        file.write('}')
+        licznik += 1
+    file.write('\n\n};\n')
+    os.chdir('..')
+    srodek = np.load('srodek_PCA_2_skladowe.npy')
+    s_gr = np.load('graniczna_odleglosc_PCA_2_skladowe.npy')
+    sigma = np.load('macierz_skalujaca_PCA_2_skladowe.npy')
+    fi = np.load('PCA_2_SKL.npy')
+    file.write('srodek = { ' + np.array2string(srodek[0], precision = 18 ) + ' , ' + np.array2string(srodek[1], precision = 18 ) + ' }; \n' )
+    file.write('graniczna_odl =  ' + np.array2string(s_gr, precision = 18 ).strip('[[]]') + ';  \n' )
+    file.write('sigma = { { ' + np.array2string(sigma[0][0], precision = 18 )+ ' , ' + np.array2string(sigma[0][1], precision = 18 )+ '} , {' + np.array2string(sigma[1][0], precision = 18 )+ ' , ' + np.array2string(sigma[1][1], precision = 18 ) + '} }; \n' )
+    fi_1_wiersz = ''
+    for i in range(fi.shape[1]):
+        fi_1_wiersz += np.array2string(fi[0][i], precision = 18 ) + ','
+    fi_1_wiersz = fi_1_wiersz[:-1]
+    fi_2_wiersz = ''
+    for i in range(fi.shape[1]):
+        fi_2_wiersz += np.array2string(fi[1][i], precision = 18 )+ ','
+    fi_2_wiersz = fi_2_wiersz[:-1]
+    file.write('fi = {\n{ ' + fi_1_wiersz +'},\n{' + fi_2_wiersz + '}\n}; \n' )
+    file.close()
+#------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def wczytajSlownik():
+    s = {}
+    lista_plikow = os.listdir()
+    for plik in lista_plikow:
+        indeks_kropki = plik.find('.')
+        s[plik[:indeks_kropki]] = np.load(plik)
+
+    return s
+
 #------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def slownikUszkodzenCzas(sygnal, Czas_trwania_pobudzenia, chwile_probkowania , elementy = uklad.elementy, liczba_punktow_na_element = LICZBA_PUNKTOW): # elementy slownika sa macierzami numPy
