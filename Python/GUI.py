@@ -1,3 +1,4 @@
+# na podstawie : https://www.youtube.com/watch?v=JrWHyqonGj8
 import tkinter as tk
 import OknoModalne
 import GUI_backend as backend
@@ -70,7 +71,11 @@ def funkcjaPrzycisku1():
         backend.os.chdir(SCIEZKA_DOMYSLNA)
         wynik_klasyfikacji.delete('1.0',tk.END) # wyczyszczenie pola tekstowego
         licznik = 1
-        liczba_plikow_str = str(len(lista_plikow))
+        liczba_plikow = 0
+        for plik in lista_plikow:
+            if (weryfikacjaPliku( plik )) : liczba_plikow += 1
+            
+        liczba_plikow_str = str(liczba_plikow)
         for plik in lista_plikow:
             if not(weryfikacjaPliku( plik )) : continue # jezeli plik NIE przejdzie walidacji
             pomiar = backend.np.load(folder_z_pomiarami + '/'+plik)
