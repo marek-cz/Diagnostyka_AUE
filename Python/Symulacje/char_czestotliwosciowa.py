@@ -25,23 +25,24 @@ def wyrysujCharakterystyki(elementy,f):
     h_nom = funkcjeUkladowe.charCzestotliwosciowaModul(licznik, mianownik,f)
     H = np.asarray(h_nom)
     for i in range (200):
-        for element in elementy :
-            if element.find('R') != -1 :
-                #element jest Rezystorem
-                a = 1 - uklad.TOLERANCJA['R']
-                b = 1 + uklad.TOLERANCJA['R']
-            elif element.find('C') != -1:
-                a = 1 - uklad.TOLERANCJA['C']
-                b = 1 + uklad.TOLERANCJA['C']
-            else :
-                print('kaszana!')
-            elementy_modyfikacje[element] = elementy[element] * (random.uniform(a,b))
-            (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
-            h = funkcjeUkladowe.charCzestotliwosciowaModul(licznik, mianownik,f)
-            #if h[150] > maksimum[150] : maksimum = h
-            #if h[150] < minimum[150] : minimum = h
-            plt.plot(f, 20 * np.log10(abs(h)),'r',linewidth=4)
-            H = np.concatenate( (H, h) )
+##        for element in elementy :
+##            if element.find('R') != -1 :
+##                #element jest Rezystorem
+##                a = 1 - uklad.TOLERANCJA['R']
+##                b = 1 + uklad.TOLERANCJA['R']
+##            elif element.find('C') != -1:
+##                a = 1 - uklad.TOLERANCJA['C']
+##                b = 1 + uklad.TOLERANCJA['C']
+##            else :
+##                print('kaszana!')
+##            elementy_modyfikacje[element] = elementy[element] * (random.uniform(a,b))
+        elementy_modyfikacje = funkcjeUkladowe.losowanieRozkladNormalny(elementy, funkcjeUkladowe.uklad.TOLERANCJA)
+        (licznik, mianownik) = uklad.transmitancja(elementy_modyfikacje)
+        h = funkcjeUkladowe.charCzestotliwosciowaModul(licznik, mianownik,f)
+        #if h[150] > maksimum[150] : maksimum = h
+        #if h[150] < minimum[150] : minimum = h
+        plt.plot(f, 20 * np.log10(abs(h)),'r',linewidth=4)
+        H = np.concatenate( (H, h) )
     #plt.plot(f, 20 * np.log10(abs(maksimum)),'r')
     #print(f,len(f))
     plt.plot(f, 20 * np.log10(abs(h)),'r', label = 'Losowania' ,linewidth=4)
